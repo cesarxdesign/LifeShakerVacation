@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🌴 Vacation Tracker</title>
+
+<!-- Firebase 8 -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+
+<!-- EmailJS -->
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+
+<!-- React + Babel -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; background: #f1f5f9; color: #0f172a; min-height: 100vh; }
+
+.nav { background: #fff; border-bottom: 2px solid #e2e8f0; display: flex; align-items: stretch; overflow-x: auto; scrollbar-width: none; position: sticky; top: 0; z-index: 100; box-shadow: 0 1px 8px rgba(0,0,0,0.06); }
+.nav::-webkit-scrollbar { display: none; }
+.nav-logo { font-weight: 800; font-size: 16px; padding: 0 20px; border-right: 1px solid #e2e8f0; display: flex; align-items: center; gap: 8px; white-space: nowrap; color: #0f172a; min-width: fit-content; }
+.nav-logo .accent { color: #4f46e5; }
+.nav-tab { padding: 0 16px; cursor: pointer; border-bottom: 3px solid transparent; font-size: 13px; font-weight: 500; color: #64748b; white-space: nowrap; transition: all 0.15s; display: flex; align-items: center; gap: 6px; min-height: 52px; user-select: none; }
+.nav-tab:hover { color: #0f172a; background: #f8fafc; }
+.nav-tab.active { color: #4f46e5; border-bottom-color: #4f46e5; font-weight: 700; background: #f5f3ff; }
+.nav-tab.manage-tab { border-left: 1px solid #e2e8f0; color: #94a3b8; }
+.nav-tab.manage-tab:hover { color: #475569; }
+.nav-tab.manage-tab.active { color: #4f46e5; }
+.nav-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+.nav-divider { width: 1px; background: #e2e8f0; margin: 10px 0; flex-shrink: 0; }
+.conn-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.conn-dot.online  { background: #16a34a; box-shadow: 0 0 0 2px #dcfce7; }
+.conn-dot.offline { background: #94a3b8; }
+.pending-badge { background: #ef4444; color: #fff; border-radius: 99px; font-size: 10px; font-weight: 800; min-width: 17px; height: 17px; padding: 0 5px; display: inline-flex; align-items: center; justify-content: center; line-height: 1; }
+
+/* AUTH PILL */
+.auth-user-pill { display: flex; align-items: center; gap: 10px; padding: 0 16px; border-left: 1px solid #e2e8f0; margin-left: auto; flex-shrink: 0; min-height: 52px; }
+.auth-avatar { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+.auth-avatar-fallback { width: 28px; height: 28px; border-radius: 50%; background: #4f46e5; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; flex-shrink: 0; }
+.auth-name { font-size: 13px; font-weight: 600; color: #374151; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.auth-signout { font-size: 12px; color: #94a3b8; cursor: pointer; padding: 5px 10px; border-radius: 7px; border: 1px solid #e2e8f0; background: none; font-weight: 500; transition: all 0.15s; white-space: nowrap; }
+.auth-signout:hover { background: #fef2f2; border-color: #fca5a5; color: #dc2626; }
+.role-chip { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 99px; white-space: nowrap; }
+.role-chip.super-admin { background: #fef3c7; color: #92400e; }
+.role-chip.mini-admin  { background: #ede9fe; color: #5b21b6; }
+
+/* AUTH SCREENS */
+.auth-page { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; background: linear-gradient(135deg, #f0f4ff 0%, #fdf4ff 100%); }
+.auth-card { background: #fff; border-radius: 24px; padding: 52px 44px; max-width: 420px; width: 100%; box-shadow: 0 8px 40px rgba(79,70,229,0.12); text-align: center; }
+.auth-emoji { font-size: 58px; margin-bottom: 16px; }
+.auth-title { font-size: 28px; font-weight: 800; margin-bottom: 8px; }
+.auth-sub { color: #64748b; line-height: 1.7; margin-bottom: 32px; font-size: 15px; }
+.google-btn { width: 100%; padding: 14px 20px; border-radius: 12px; border: 1.5px solid #e2e8f0; background: #fff; cursor: pointer; font-size: 15px; font-weight: 600; color: #374151; display: flex; align-items: center; justify-content: center; gap: 12px; transition: all 0.15s; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+.google-btn:hover:not(:disabled) { background: #f8fafc; border-color: #c7d2fe; transform: translateY(-1px); }
+.google-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+.google-icon { width: 20px; height: 20px; flex-shrink: 0; }
+.auth-error { background: #fef2f2; border: 1.5px solid #fca5a5; border-radius: 10px; padding: 12px 16px; font-size: 13px; color: #991b1b; margin-bottom: 20px; text-align: left; }
+.access-denied-email { background: #f1f5f9; border-radius: 8px; padding: 8px 14px; font-size: 14px; color: #4f46e5; font-weight: 600; margin: 12px 0 24px; display: inline-block; word-break: break-all; }
+
+.main { padding: 28px 24px; max-width: 1500px; margin: 0 auto; }
+.page-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 16px; }
+.page-title { font-size: 22px; font-weight: 800; }
+.page-subtitle { font-size: 14px; color: #64748b; margin-top: 3px; }
+.header-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+
+.month-nav { display: flex; align-items: center; gap: 4px; background: #fff; border: 1.5px solid #e2e8f0; border-radius: 10px; padding: 4px; }
+.month-nav-btn { background: none; border: none; border-radius: 7px; padding: 6px 10px; cursor: pointer; font-size: 14px; color: #64748b; transition: all 0.15s; line-height: 1; }
+.month-nav-btn:hover { background: #f1f5f9; color: #0f172a; }
+.month-label { font-size: 14px; font-weight: 700; min-width: 140px; text-align: center; padding: 0 4px; }
+
+.btn { padding: 9px 18px; border-radius: 9px; border: none; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.15s; display: inline-flex; align-items: center; gap: 6px; }
+.btn:active { transform: scale(0.97); }
+.btn-primary { background: #4f46e5; color: #fff; box-shadow: 0 1px 4px rgba(79,70,229,0.3); }
+.btn-primary:hover { background: #4338ca; }
+.btn-danger-ghost { background: #fef2f2; color: #dc2626; font-size: 12px; padding: 6px 10px; border: none; border-radius: 9px; cursor: pointer; font-weight: 600; transition: all 0.15s; }
+.btn-danger-ghost:hover { background: #fee2e2; }
+.btn-edit-ghost { background: #eff6ff; color: #2563eb; font-size: 12px; padding: 6px 10px; border: none; border-radius: 9px; cursor: pointer; font-weight: 600; transition: all 0.15s; }
+.btn-edit-ghost:hover { background: #dbeafe; }
+
+/* GANTT */
+.gantt-wrap { background: #fff; border-radius: 14px; box-shadow: 0 1px 4px rgba(0,0,0,0.07), 0 4px 20px rgba(0,0,0,0.04); overflow: hidden; }
+.gantt-scroll { overflow-x: auto; }
+.gantt-table { border-collapse: collapse; width: 100%; }
+.gantt-table th, .gantt-table td { padding: 0; }
+.gantt-name-th { width: 170px; min-width: 170px; padding: 10px 16px; font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.06em; border-right: 2px solid #e2e8f0; background: #f8fafc; text-align: left; }
+.gantt-day-th { min-width: 32px; width: 32px; text-align: center; padding: 8px 2px 6px; border-right: 1px solid #f1f5f9; background: #f8fafc; }
+.gantt-day-th.weekend { background: #f8f8fb; }
+.gantt-day-th.today-col { background: #f0f0ff; }
+.day-num { font-size: 11px; font-weight: 700; color: #475569; line-height: 1; }
+.day-name { font-size: 9px; font-weight: 500; color: #94a3b8; margin-top: 3px; text-transform: uppercase; }
+.gantt-day-th.today-col .day-num { color: #4f46e5; }
+.gantt-day-th.weekend .day-num { color: #cbd5e1; }
+.gantt-day-th.weekend .day-name { color: #e2e8f0; }
+.gantt-name-td { padding: 0 16px; border-right: 2px solid #e2e8f0; cursor: pointer; background: #fff; transition: background 0.12s; }
+.gantt-name-td:hover { background: #f5f3ff; }
+.gantt-row { border-bottom: 1px solid #f1f5f9; }
+.gantt-row:last-child { border-bottom: none; }
+.gantt-member-inner { display: flex; align-items: center; gap: 9px; height: 44px; }
+.initials { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800; color: #fff; flex-shrink: 0; }
+.member-first { font-size: 12px; font-weight: 600; color: #374151; }
+.gantt-cell-td { min-width: 32px; width: 32px; height: 44px; border-right: 1px solid #f1f5f9; position: relative; vertical-align: middle; }
+.gantt-cell-td.weekend { background: #f9fafb; }
+.gantt-cell-td.today-col { background: #f9f8ff; }
+.vac-pill { position: absolute; top: 8px; bottom: 8px; left: 0; right: 0; }
+.vac-pill-inner { position: absolute; top: 0; bottom: 0; left: 0; right: 0; }
+.vac-pill-inner.pending-pill  { opacity: 0.75; }
+.vac-pill-inner.rejected-pill { opacity: 0.6; }
+.today-ring { display: inline-block; background: #4f46e5; color: #fff; border-radius: 4px; padding: 1px 3px; font-size: 11px; font-weight: 800; }
+
+.summary-strip { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+.summary-card { background: #fff; border-radius: 10px; padding: 12px 18px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); display: flex; align-items: center; gap: 10px; flex: 1; min-width: 140px; }
+.summary-icon { font-size: 22px; line-height: 1; }
+.summary-val { font-size: 22px; font-weight: 800; line-height: 1; }
+.summary-lbl { font-size: 11px; font-weight: 500; color: #64748b; margin-top: 2px; }
+
+.legend { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 14px; }
+.legend-item { display: flex; align-items: center; gap: 7px; font-size: 12px; color: #64748b; }
+.legend-swatch { width: 22px; height: 12px; border-radius: 3px; }
+
+.person-header { display: flex; align-items: center; gap: 18px; margin-bottom: 26px; padding: 20px 24px; background: #fff; border-radius: 14px; box-shadow: 0 1px 4px rgba(0,0,0,0.07); }
+.person-avatar { width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 800; color: #fff; flex-shrink: 0; }
+.person-name { font-size: 22px; font-weight: 800; }
+.person-stat-pill { display: inline-flex; align-items: center; gap: 4px; padding: 2px 10px; border-radius: 99px; font-size: 12px; font-weight: 600; }
+.stat-approved { background: #f0fdf4; color: #16a34a; }
+.stat-pending   { background: #fffbeb; color: #b45309; }
+.stat-rejected  { background: #fef2f2; color: #dc2626; }
+.stat-total     { background: #f1f5f9; color: #475569; }
+
+.vac-list { display: flex; flex-direction: column; gap: 10px; }
+.vac-card { background: #fff; border-radius: 12px; padding: 16px 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); display: flex; align-items: center; gap: 16px; border-left: 4px solid #e2e8f0; transition: box-shadow 0.15s; }
+.vac-card:hover { box-shadow: 0 2px 10px rgba(0,0,0,0.09); }
+.vac-card.approved { border-left-color: #16a34a; }
+.vac-card.pending  { border-left-color: #f59e0b; }
+.vac-card.rejected { border-left-color: #ef4444; opacity: 0.75; }
+.vac-card-dates { flex: 1; min-width: 0; }
+.vac-date-range { font-size: 15px; font-weight: 700; }
+.vac-meta { font-size: 12px; color: #94a3b8; margin-top: 3px; }
+.vac-note { font-size: 12px; color: #64748b; font-style: italic; margin-top: 5px; background: #f8fafc; border-radius: 6px; padding: 4px 8px; display: inline-block; }
+.vac-card-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+
+.status-badge { padding: 5px 13px; border-radius: 99px; font-size: 12px; font-weight: 700; border: 1.5px solid; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; }
+.status-badge.clickable { cursor: pointer; transition: all 0.15s; }
+.status-badge.clickable:hover { transform: scale(1.06); }
+.status-badge.approved { background: #f0fdf4; color: #16a34a; border-color: #86efac; }
+.status-badge.pending  { background: #fffbeb; color: #b45309; border-color: #fcd34d; }
+.status-badge.rejected { background: #fef2f2; color: #dc2626; border-color: #fca5a5; }
+
+.member-grid { display: flex; flex-direction: column; gap: 10px; }
+.member-row { background: #fff; border-radius: 12px; padding: 14px 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); display: flex; align-items: flex-start; gap: 16px; transition: box-shadow 0.15s; }
+.member-row:hover { box-shadow: 0 2px 10px rgba(0,0,0,0.09); }
+.member-row-avatar { width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 800; color: #fff; flex-shrink: 0; margin-top: 2px; cursor: pointer; }
+.member-row-name { font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.member-row-meta { font-size: 12px; color: #94a3b8; margin-top: 2px; }
+.member-row-actions { margin-left: auto; flex-shrink: 0; }
+.email-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: #4f46e5; background: #f0f4ff; border-radius: 99px; padding: 3px 10px; margin-top: 6px; font-weight: 500; }
+.email-missing { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: #b45309; background: #fffbeb; border: 1px solid #fde68a; border-radius: 99px; padding: 3px 10px; margin-top: 6px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+.email-missing:hover { background: #fef3c7; }
+.email-edit-icon { background: none; border: none; cursor: pointer; font-size: 12px; color: #94a3b8; padding: 2px 5px; border-radius: 4px; line-height: 1; margin-left: 2px; }
+.email-edit-icon:hover { color: #4f46e5; background: #f0f4ff; }
+.email-inline-edit { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
+.email-inline-input { flex: 1; padding: 7px 11px; border: 1.5px solid #c7d2fe; border-radius: 8px; font-size: 13px; outline: none; color: #0f172a; min-width: 0; }
+.email-inline-input:focus { border-color: #4f46e5; box-shadow: 0 0 0 3px rgba(79,70,229,0.1); }
+.role-badge { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 99px; }
+.role-badge.super { background: #fef3c7; color: #92400e; }
+.role-badge.mini  { background: #ede9fe; color: #5b21b6; }
+
+.color-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+.color-swatch { width: 30px; height: 30px; border-radius: 50%; cursor: pointer; border: 3px solid transparent; transition: all 0.15s; flex-shrink: 0; }
+.color-swatch:hover { transform: scale(1.15); }
+.color-swatch.selected { border-color: #0f172a; transform: scale(1.15); }
+.avatar-preview { width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 800; color: #fff; flex-shrink: 0; }
+
+.empty { text-align: center; padding: 70px 20px; color: #94a3b8; background: #fff; border-radius: 14px; box-shadow: 0 1px 4px rgba(0,0,0,0.07); }
+.empty-icon { font-size: 52px; margin-bottom: 14px; }
+.empty-title { font-size: 17px; font-weight: 700; color: #64748b; }
+
+.modal-overlay { position: fixed; inset: 0; background: rgba(15,23,42,0.45); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 16px; backdrop-filter: blur(2px); }
+.modal { background: #fff; border-radius: 18px; padding: 30px; width: 440px; max-width: 100%; box-shadow: 0 24px 80px rgba(0,0,0,0.22); animation: modalIn 0.18s ease; }
+@keyframes modalIn { from { opacity:0; transform:scale(0.95) translateY(10px); } to { opacity:1; transform:none; } }
+.modal-title { font-size: 20px; font-weight: 800; margin-bottom: 22px; }
+.modal-close { float: right; background: none; border: none; font-size: 22px; cursor: pointer; color: #94a3b8; margin-top: -4px; line-height: 1; padding: 2px 6px; border-radius: 6px; }
+.modal-close:hover { color: #0f172a; background: #f1f5f9; }
+.form-group { margin-bottom: 18px; }
+.form-label { display: block; font-size: 13px; font-weight: 700; color: #374151; margin-bottom: 7px; }
+.form-input { width: 100%; padding: 10px 13px; border: 1.5px solid #e2e8f0; border-radius: 9px; font-size: 14px; outline: none; transition: border-color 0.15s; color: #0f172a; background: #fff; }
+.form-input:focus { border-color: #4f46e5; box-shadow: 0 0 0 3px rgba(79,70,229,0.1); }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.modal-actions { display: flex; gap: 10px; margin-top: 26px; justify-content: flex-end; }
+.btn-cancel { padding: 10px 20px; border-radius: 9px; border: 1.5px solid #e2e8f0; background: #fff; cursor: pointer; font-size: 14px; font-weight: 600; color: #64748b; transition: all 0.15s; }
+.btn-cancel:hover { background: #f8fafc; }
+.status-selector { display: flex; gap: 8px; }
+.status-option { flex: 1; padding: 9px 6px; border-radius: 9px; border: 1.5px solid #e2e8f0; cursor: pointer; text-align: center; font-size: 12px; font-weight: 700; transition: all 0.15s; color: #94a3b8; }
+.status-option:hover { border-color: #cbd5e1; background: #f8fafc; }
+.status-option.sel-approved { background: #f0fdf4; color: #16a34a; border-color: #86efac; }
+.status-option.sel-pending  { background: #fffbeb; color: #b45309; border-color: #fcd34d; }
+.status-option.sel-rejected { background: #fef2f2; color: #dc2626; border-color: #fca5a5; }
+.status-locked { border-radius: 9px; padding: 10px 14px; font-size: 13px; font-weight: 600; border: 1.5px solid; }
+.status-locked.approved { background: #f0fdf4; color: #16a34a; border-color: #86efac; }
+.status-locked.pending  { background: #fffbeb; color: #b45309; border-color: #fcd34d; }
+
+.info-box { border-radius: 12px; padding: 14px 18px; font-size: 13px; line-height: 1.6; margin-bottom: 20px; }
+.info-box.warning { background: #fffbeb; border: 1.5px solid #fde68a; color: #92400e; }
+.info-box strong { display: block; margin-bottom: 4px; font-weight: 700; font-size: 14px; }
+
+.loading { display: flex; align-items: center; justify-content: center; min-height: 60vh; flex-direction: column; gap: 16px; color: #94a3b8; }
+.spinner { width: 36px; height: 36px; border: 3px solid #e2e8f0; border-top-color: #4f46e5; border-radius: 50%; animation: spin 0.7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 640px) {
+  .main { padding: 16px 12px; }
+  .page-header { flex-direction: column; }
+  .form-row { grid-template-columns: 1fr; }
+  .person-header { flex-wrap: wrap; }
+  .auth-card { padding: 36px 24px; }
+  .auth-name { display: none; }
+}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useMemo, useEffect, useRef } = React;
+
+/* ══════════════════════════════════════════════════════════════════
+   FIREBASE CONFIG
+   ══════════════════════════════════════════════════════════════════ */
+const FIREBASE_CONFIG = {
+  apiKey:            "AIzaSyAWUqgveSRHcwcYyzzT9gBNfX6fG8tXMJM",
+  authDomain:        "feriaslifeshaker.firebaseapp.com",
+  databaseURL:       "https://feriaslifeshaker-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId:         "feriaslifeshaker",
+  storageBucket:     "feriaslifeshaker.firebasestorage.app",
+  messagingSenderId: "990608424290",
+  appId:             "1:990608424290:web:f9d4b7500ea857b9f5003b",
+};
+
+/* ══════════════════════════════════════════════════════════════════
+   ROLES  (invisible to users — only read by the app)
+   ══════════════════════════════════════════════════════════════════
+   super-admin  → Tiago    : approva todos, férias auto-aprovadas, recebe emails
+   mini-admin   → Cátia    : aprova todos exceto Tiago, recebe emails
+   hidden-admin → maintainer: acesso total, nunca visível na UI
+   member       → todos os outros
+   ══════════════════════════════════════════════════════════════════ */
+const SUPER_ADMIN_EMAIL  = 'airesjctiago@gmail.com';
+const MINI_ADMIN_EMAIL   = 'godoroja.lifeshaker@gmail.com';
+const HIDDEN_ADMIN_EMAIL = 'cesarxgarcia@gmail.com';
+const TIAGO_NAME         = 'Tiago Aires';
+const CATIA_NAME         = 'Cátia Godoroja';
+
+/* ══════════════════════════════════════════════════════════════════
+   EMAILJS  —  notificações automáticas por email
+   ──────────────────────────────────────────────────────────────────
+   Cole aqui os IDs depois de configurar o EmailJS (ver instruções).
+   ══════════════════════════════════════════════════════════════════ */
+const EMAILJS_SERVICE_ID  = 'service_eiiqxdg';
+const EMAILJS_TEMPLATE_ID = 'template_732y2y7';
+const EMAILJS_PUBLIC_KEY  = '6DEAsB-FclPKRaqKx';
+const EMAILJS_ON = !EMAILJS_SERVICE_ID.startsWith('PASTE') &&
+                   typeof emailjs !== 'undefined';
+
+/* ─── Auto-migrate emails for Tiago and Cátia on first load ─── */
+const EMAIL_MIGRATION = {
+  [TIAGO_NAME]: SUPER_ADMIN_EMAIL,
+  [CATIA_NAME]: MINI_ADMIN_EMAIL,
+};
+
+const IS_CONFIGURED = Object.values(FIREBASE_CONFIG).every(v => v !== "PASTE_HERE" && v !== "");
+
+let db = null, auth = null;
+if (IS_CONFIGURED) {
+  try {
+    firebase.initializeApp(FIREBASE_CONFIG);
+    db   = firebase.database();
+    auth = firebase.auth();
+  } catch(e) { console.error("Firebase init:", e); }
+}
+
+const DEFAULT_TEAM = [
+  { name: "Tiago Aires",      color: "#4f46e5", initials: "TA", email: SUPER_ADMIN_EMAIL },
+  { name: "Cátia Godoroja",   color: "#7c3aed", initials: "CG", email: MINI_ADMIN_EMAIL  },
+  { name: "Anabela Duarte",   color: "#db2777", initials: "AD" },
+  { name: "Isael Silva",      color: "#dc2626", initials: "IS" },
+  { name: "Yara Cardoso",     color: "#d97706", initials: "YC" },
+  { name: "Tomás Barros",     color: "#16a34a", initials: "TB" },
+  { name: "Keveni Fernandes", color: "#0891b2", initials: "KF" },
+  { name: "Mário Amaro",      color: "#0284c7", initials: "MA" },
+  { name: "Rui Silva",        color: "#9333ea", initials: "RS" },
+  { name: "Carina Júlio",     color: "#c026d3", initials: "CJ" },
+  { name: "Amanda Tocchio",   color: "#ea580c", initials: "AT" },
+];
+
+const COLOR_PALETTE = [
+  "#4f46e5","#7c3aed","#db2777","#dc2626","#d97706",
+  "#16a34a","#0891b2","#0284c7","#9333ea","#c026d3",
+  "#ea580c","#0f766e","#be185d","#1d4ed8","#92400e",
+  "#065f46","#7e22ce","#9f1239","#15803d","#b45309",
+];
+
+const STATUS_COLORS = { approved: "#16a34a", pending: "#f59e0b", rejected: "#ef4444" };
+const NEXT_STATUS   = { pending: "approved", approved: "rejected", rejected: "pending" };
+const MONTHS_EN     = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+const WEEKDAYS      = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+
+/* ─── ROLE HELPERS ─── */
+function getUserRole(email) {
+  const e = (email||'').toLowerCase().trim();
+  if (e === SUPER_ADMIN_EMAIL)  return 'super-admin';
+  if (e === HIDDEN_ADMIN_EMAIL) return 'hidden-admin';
+  if (e === MINI_ADMIN_EMAIL)   return 'mini-admin';
+  return 'member';
+}
+function canApprove(userEmail, memberName) {
+  const role = getUserRole(userEmail);
+  if (role === 'super-admin' || role === 'hidden-admin') return true;
+  if (role === 'mini-admin') return memberName !== TIAGO_NAME;
+  return false;
+}
+function isAnyAdmin(userEmail) {
+  return ['super-admin','mini-admin','hidden-admin'].includes(getUserRole(userEmail));
+}
+
+/* ─── MISC HELPERS ─── */
+function pad2(n)   { return String(n).padStart(2,"0"); }
+function ds(y,m,d) { return `${y}-${pad2(m+1)}-${pad2(d)}`; }
+function parse(s)  { const [y,m,d]=s.split("-").map(Number); return new Date(y,m-1,d); }
+function dim(y,m)  { return new Date(y,m+1,0).getDate(); }
+function today()   { const n=new Date(); return ds(n.getFullYear(),n.getMonth(),n.getDate()); }
+function uid()     { return Date.now().toString(36)+Math.random().toString(36).slice(2); }
+function isValidEmail(e) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((e||'').trim()); }
+function toInitials(name) {
+  return name.trim().split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0].toUpperCase()).join('') || "?";
+}
+function getNextColor(team) {
+  const used = new Set(team.map(m=>m.color));
+  return COLOR_PALETTE.find(c=>!used.has(c)) || COLOR_PALETTE[team.length % COLOR_PALETTE.length];
+}
+function expand(s,e) {
+  const days=[],cur=parse(s),stop=parse(e);
+  while(cur<=stop){ const d=new Date(cur); days.push(ds(d.getFullYear(),d.getMonth(),d.getDate())); cur.setDate(cur.getDate()+1); }
+  return days;
+}
+function wdays(s,e) { return expand(s,e).filter(x=>{const d=parse(x).getDay();return d!==0&&d!==6;}).length; }
+function fmt(s,e) {
+  const a=parse(s),b=parse(e),o={day:"numeric",month:"short"},oy={day:"numeric",month:"short",year:"numeric"};
+  return s===e ? a.toLocaleDateString("pt-PT",oy) : `${a.toLocaleDateString("pt-PT",o)} – ${b.toLocaleDateString("pt-PT",oy)}`;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   EMAIL NOTIFICATIONS  (todas em Português de Portugal)
+   ══════════════════════════════════════════════════════════════════ */
+function _sendEmail(toEmail, toName, subject, message) {
+  if (!EMAILJS_ON) return;
+  emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+    to_email: toEmail,
+    to_name:  toName,
+    subject:  subject,
+    message:  message,
+    app_link: window.location.href,
+  }, EMAILJS_PUBLIC_KEY).catch(e => console.warn('EmailJS:', e));
+}
+
+// Chamado quando alguém submete um novo pedido de férias
+function notifyNewRequest(vacation) {
+  if (!EMAILJS_ON) return;
+  const { member, startDate, endDate, note } = vacation;
+  const periodo = fmt(startDate, endDate);
+  const dias    = wdays(startDate, endDate);
+  const notaLinha = note ? `\nNota: ${note}` : '';
+  const msg = `${member} submeteu um pedido de férias que necessita de aprovação.\n\nPeríodo: ${periodo}\nDias úteis: ${dias}${notaLinha}`;
+  const subject = `🌴 Novo pedido de férias — ${member}`;
+  // Notificar Tiago (sempre que não é o próprio Tiago — as férias dele são auto-aprovadas)
+  _sendEmail(SUPER_ADMIN_EMAIL, 'Tiago', subject, msg);
+  // Notificar Cátia (excepto quando é ela própria a submeter)
+  if (member !== CATIA_NAME) {
+    _sendEmail(MINI_ADMIN_EMAIL, 'Cátia', subject, msg);
+  }
+}
+
+// Chamado quando uma féria passa para o estado "approved"
+function notifyApproval(vacation, approverEmail, team) {
+  if (!EMAILJS_ON) return;
+  const { member, startDate, endDate } = vacation;
+  const periodo     = fmt(startDate, endDate);
+  const dias        = wdays(startDate, endDate);
+  const approverRole = getUserRole(approverEmail);
+  const memberData  = team.find(m => m.name === member);
+
+  // ── Notificações cruzadas entre admins ──
+  if (approverRole === 'mini-admin') {
+    // Cátia aprovou alguém → avisar Tiago
+    _sendEmail(
+      SUPER_ADMIN_EMAIL, 'Tiago',
+      `✅ Cátia aprovou — ${member}`,
+      `A Cátia aprovou o pedido de férias de ${member}.\n\nPeríodo: ${periodo}\nDias úteis: ${dias}`
+    );
+  } else if (approverRole === 'super-admin' && member !== CATIA_NAME) {
+    // Tiago aprovou alguém (que não é a Cátia) → avisar Cátia
+    // Se for a Cátia, ela já recebe o email de "férias aprovadas" abaixo
+    _sendEmail(
+      MINI_ADMIN_EMAIL, 'Cátia',
+      `✅ Tiago aprovou — ${member}`,
+      `O Tiago aprovou o pedido de férias de ${member}.\n\nPeríodo: ${periodo}\nDias úteis: ${dias}`
+    );
+  }
+
+  // ── Notificar o próprio colaborador que as suas férias foram aprovadas ──
+  // (Excluir Tiago — as dele são auto-aprovadas e ele não precisa de email)
+  if (member !== TIAGO_NAME && memberData?.email) {
+    const firstName = member.split(' ')[0];
+    let subject, msg;
+    if (member === CATIA_NAME && approverRole === 'super-admin') {
+      // Caso especial: Tiago aprovou a Cátia
+      subject = `🎉 As tuas férias foram aprovadas! ${periodo}`;
+      msg = `Olá Cátia!\n\nO Tiago aprovou o teu pedido de férias! 🎉\n\nPeríodo: ${periodo}\nDias úteis: ${dias}\n\nBoas férias! 🌴`;
+    } else {
+      subject = `🎉 Férias aprovadas! ${periodo}`;
+      msg = `Olá ${firstName}!\n\nO teu pedido de férias foi aprovado! 🎉\n\nPeríodo: ${periodo}\nDias úteis: ${dias}\n\nBoas férias! 🌴`;
+    }
+    _sendEmail(memberData.email, firstName, subject, msg);
+  }
+}
+
+/* ─── SETUP SCREEN ─── */
+function SetupScreen() {
+  return (
+    <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
+      <div style={{background:"#fff",borderRadius:20,padding:44,maxWidth:480,width:"100%",boxShadow:"0 8px 40px rgba(0,0,0,0.12)"}}>
+        <div style={{fontSize:52,marginBottom:16}}>🔧</div>
+        <div style={{fontSize:26,fontWeight:800,marginBottom:10}}>Setup needed</div>
+        <div style={{color:"#64748b",marginBottom:28}}>Paste your Firebase config into FIREBASE_CONFIG.</div>
+        <a style={{display:"block",background:"#4f46e5",color:"#fff",textDecoration:"none",textAlign:"center",padding:14,borderRadius:10,fontWeight:700}} href="https://console.firebase.google.com" target="_blank" rel="noopener">Open Firebase Console →</a>
+      </div>
+    </div>
+  );
+}
+
+/* ─── LOGIN SCREEN ─── */
+function LoginScreen() {
+  const [loading, setLoading] = useState(false);
+  const [error,   setError]   = useState(null);
+  const handleGoogle = async () => {
+    setLoading(true); setError(null);
+    try { await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); }
+    catch(e) { setLoading(false); if(e.code!=="auth/popup-closed-by-user") setError("Falha no início de sessão. Tenta novamente."); }
+  };
+  return (
+    <div className="auth-page">
+      <div className="auth-card">
+        <div className="auth-emoji">🌴</div>
+        <div className="auth-title">Vacation Tracker</div>
+        <div className="auth-sub">Inicia sessão com a tua conta Google para acederes ao planeamento de férias da equipa.</div>
+        {error && <div className="auth-error">⚠️ {error}</div>}
+        <button className="google-btn" onClick={handleGoogle} disabled={loading}>
+          {loading ? <><span className="spinner" style={{width:20,height:20,borderWidth:2}}/> A entrar…</> : (
+            <><svg className="google-icon" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.36-8.16 2.36-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>Iniciar sessão com Google</>
+          )}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ─── ACCESS DENIED ─── */
+function AccessDeniedScreen({ email }) {
+  return (
+    <div className="auth-page">
+      <div className="auth-card">
+        <div className="auth-emoji">🚫</div>
+        <div className="auth-title">Acesso negado</div>
+        <div className="auth-sub">Este email não está registado na equipa:<div className="access-denied-email">{email}</div>Contacta o teu gestor para seres adicionado.</div>
+        <button className="google-btn" onClick={() => auth.signOut()}>Sair e usar outra conta</button>
+      </div>
+    </div>
+  );
+}
+
+/* ─── AUTH USER PILL ─── */
+function AuthUserPill({ user }) {
+  const role = getUserRole(user.email);
+  // Hidden admin: completely invisible — just a plain sign-out button, no name/photo/role
+  if (role === 'hidden-admin') {
+    return (
+      <div className="auth-user-pill">
+        <button className="auth-signout" onClick={() => auth.signOut()}>Sign out</button>
+      </div>
+    );
+  }
+  const initials  = (user.displayName||user.email||"?").split(" ").filter(Boolean).slice(0,2).map(w=>w[0].toUpperCase()).join("");
+  const roleLabel = role === 'super-admin' ? '⭐ Admin' : role === 'mini-admin' ? '🔑 Admin' : null;
+  return (
+    <div className="auth-user-pill">
+      {user.photoURL ? <img className="auth-avatar" src={user.photoURL} alt="" /> : <div className="auth-avatar-fallback">{initials}</div>}
+      <span className="auth-name">{user.displayName || user.email}</span>
+      {roleLabel && <span className={`role-chip ${role}`}>{roleLabel}</span>}
+      <button className="auth-signout" onClick={() => auth.signOut()}>Sign out</button>
+    </div>
+  );
+}
+
+/* ─── APP ─── */
+function App() {
+  if (!IS_CONFIGURED) return <SetupScreen />;
+
+  const [authUser,  setAuthUser]  = useState(undefined);
+  const [team,      setTeam]      = useState(null);
+  const [vacations, setVacations] = useState(null);
+  const [online,    setOnline]    = useState(false);
+  const [view,      setView]      = useState("team");
+  const [year,      setYear]      = useState(2026);
+  const [month,     setMonth]     = useState(()=>{ const n=new Date(); return n.getFullYear()===2026?n.getMonth():0; });
+  const [modal,     setModal]     = useState(null);
+
+  useEffect(() => { const u = auth.onAuthStateChanged(user => setAuthUser(user||null)); return u; }, []);
+
+  useEffect(() => {
+    if (!authUser) return;
+    const teamRef = db.ref("team");
+    teamRef.once("value", snap => {
+      if (!snap.val()) {
+        const seed = {}; DEFAULT_TEAM.forEach(m => { const id=uid(); seed[id]={...m,id}; }); teamRef.set(seed);
+      } else {
+        Object.values(snap.val()).forEach(m => { if (EMAIL_MIGRATION[m.name] && !m.email) db.ref(`team/${m.id}/email`).set(EMAIL_MIGRATION[m.name]); });
+      }
+    });
+    const tH = snap => { setTeam(Object.values(snap.val()||{}).sort((a,b)=>a.name.localeCompare(b.name))); setOnline(true); };
+    teamRef.on("value", tH, ()=>setOnline(false));
+    const vH = snap => setVacations(Object.values(snap.val()||{}));
+    db.ref("vacations").on("value", vH);
+    return () => { teamRef.off("value",tH); db.ref("vacations").off("value",vH); };
+  }, [authUser]);
+
+  useEffect(() => { const h=e=>{if(e.key==="Escape")setModal(null);}; window.addEventListener("keydown",h); return()=>window.removeEventListener("keydown",h); }, []);
+
+  if (authUser === undefined) return <div className="loading" style={{minHeight:"100vh"}}><div className="spinner"/><div>A carregar…</div></div>;
+  if (authUser === null) return <LoginScreen />;
+  if (!team || !vacations) return (
+    <div>
+      <nav className="nav"><div className="nav-logo">🌴 <span className="accent">Vacation</span> Tracker</div><AuthUserPill user={authUser}/></nav>
+      <div className="loading"><div className="spinner"/><div>A ligar…</div></div>
+    </div>
+  );
+
+  // Whitelist check
+  const allAllowed = [...new Set([...team.filter(m=>m.email).map(m=>m.email.toLowerCase()), HIDDEN_ADMIN_EMAIL])];
+  if (allAllowed.length > 0 && !allAllowed.includes(authUser.email.toLowerCase())) return <AccessDeniedScreen email={authUser.email}/>;
+
+  const role = getUserRole(authUser.email);
+
+  const pendingCount = useMemo(() => {
+    if (role === 'member') return 0;
+    return vacations.filter(v => v.status === 'pending' && (role !== 'mini-admin' || v.member !== TIAGO_NAME)).length;
+  }, [vacations, role]);
+
+  const prevMonth = ()=>{ if(month===0){setYear(y=>y-1);setMonth(11);}else setMonth(m=>m-1); };
+  const nextMonth = ()=>{ if(month===11){setYear(y=>y+1);setMonth(0);}else setMonth(m=>m+1); };
+
+  const saveVacation = (data) => {
+    let d = {...data};
+    if (d.member === TIAGO_NAME && modal.mode === 'add') d.status = 'approved';
+    if (modal.mode === "edit") {
+      db.ref(`vacations/${d.id}`).set(d);
+    } else {
+      const v = {...d, id: uid()};
+      db.ref(`vacations/${v.id}`).set(v);
+      if (v.member !== TIAGO_NAME) notifyNewRequest(v);
+    }
+    setModal(null);
+  };
+
+  const deleteVacation = (id) => { if(window.confirm("Eliminar este registo de férias?")) db.ref(`vacations/${id}`).remove(); };
+
+  const cycleStatus = (id) => {
+    const v = vacations.find(x=>x.id===id);
+    if (!v || !canApprove(authUser.email, v.member)) return;
+    const newStatus = NEXT_STATUS[v.status];
+    db.ref(`vacations/${id}/status`).set(newStatus);
+    if (newStatus === 'approved') notifyApproval(v, authUser.email, team);
+  };
+
+  const addMember         = (name,color,email) => { const id=uid(); db.ref(`team/${id}`).set({id,name:name.trim(),color,initials:toInitials(name),email:email.trim().toLowerCase()}); };
+  const removeMember      = (member) => {
+    const vc=(vacations||[]).filter(v=>v.member===member.name).length;
+    const msg=vc>0?`Remover ${member.name}? Tem ${vc} registo${vc!==1?"s":""} de férias.\n\nOK = remover membro E todos os seus registos.\nCancelar = abortar.`:`Remover ${member.name} da equipa?`;
+    if(!window.confirm(msg)) return;
+    db.ref(`team/${member.id}`).remove();
+    if(vc>0)(vacations||[]).filter(v=>v.member===member.name).forEach(v=>db.ref(`vacations/${v.id}`).remove());
+    if(view===member.name) setView("team");
+  };
+  const updateMemberColor = (member,color) => db.ref(`team/${member.id}/color`).set(color);
+  const updateMemberEmail = (member,email) => db.ref(`team/${member.id}/email`).set(email.trim().toLowerCase());
+
+  const openAdd  = (def) => setModal({mode:"add",  userEmail:authUser.email, defaultMember:def||(view!=="team"&&view!=="manage"?view:(team&&team[0]?.name)||"")});
+  const openEdit = (entry) => setModal({mode:"edit", userEmail:authUser.email, entry});
+  const currentMember = team?.find(m=>m.name===view);
+
+  return (
+    <div>
+      <nav className="nav">
+        <div className="nav-logo">🌴 <span className="accent">Vacation</span> Tracker<span className={`conn-dot ${online?"online":"offline"}`} title={online?"Sincronizado":"A reconectar…"} style={{marginLeft:4}}/></div>
+        <div className="nav-divider"/>
+        <div className={`nav-tab ${view==="team"?"active":""}`} onClick={()=>setView("team")}>
+          <span>👥</span> Team {pendingCount>0 && <span className="pending-badge">{pendingCount}</span>}
+        </div>
+        <div className="nav-divider"/>
+        {team.map(m=>(
+          <div key={m.id} className={`nav-tab ${view===m.name?"active":""}`} onClick={()=>setView(m.name)}>
+            <span className="nav-dot" style={{background:m.color}}/>{m.name.split(" ")[0]}
+          </div>
+        ))}
+        <div className={`nav-tab manage-tab ${view==="manage"?"active":""}`} onClick={()=>setView("manage")}>⚙️ Members</div>
+        <AuthUserPill user={authUser}/>
+      </nav>
+      <div className="main">
+        {view==="team"   && <TeamView vacations={vacations} team={team} year={year} month={month} onPrev={prevMonth} onNext={nextMonth} onPersonClick={n=>setView(n)} onAdd={()=>openAdd(null)} userEmail={authUser.email} onCycleStatus={cycleStatus}/>}
+        {view==="manage" && <ManageTeamView team={team} vacations={vacations} onAdd={addMember} onRemove={removeMember} onColorChange={updateMemberColor} onEmailChange={updateMemberEmail} currentUserEmail={authUser.email}/>}
+        {view!=="team"&&view!=="manage"&&currentMember && <PersonView member={currentMember} vacations={vacations.filter(v=>v.member===currentMember.name)} onAdd={()=>openAdd(currentMember.name)} onEdit={openEdit} onDelete={deleteVacation} onCycleStatus={cycleStatus} userEmail={authUser.email}/>}
+      </div>
+      {modal && <VacationModal mode={modal.mode} defaultMember={modal.defaultMember} entry={modal.entry} team={team} userEmail={modal.userEmail} onSave={saveVacation} onClose={()=>setModal(null)}/>}
+    </div>
+  );
+}
+
+/* ─── MANAGE TEAM VIEW ─── */
+function ManageTeamView({ team, vacations, onAdd, onRemove, onColorChange, onEmailChange, currentUserEmail }) {
+  const [showAdd,      setShowAdd]      = useState(false);
+  const [editColorFor, setEditColorFor] = useState(null);
+  const [editEmailFor, setEditEmailFor] = useState(null);
+  const [emailInput,   setEmailInput]   = useState("");
+  const emailRef = useRef(null);
+
+  const startEmailEdit = (m) => { setEditEmailFor(m); setEmailInput(m.email||""); setEditColorFor(null); setTimeout(()=>emailRef.current?.focus(),50); };
+  const saveEmail = (m) => {
+    if (!emailInput.trim()) return alert("Introduz um endereço de email.");
+    if (!isValidEmail(emailInput)) return alert("Endereço de email inválido.");
+    const dup = team.find(x=>x.id!==m.id&&x.email&&x.email.toLowerCase()===emailInput.trim().toLowerCase());
+    if (dup) return alert(`Este email já está atribuído a ${dup.name}.`);
+    onEmailChange(m,emailInput.trim().toLowerCase()); setEditEmailFor(null);
+  };
+  const missing = team.filter(m=>!m.email).length;
+  const getRoleBadge = (m) => {
+    if (m.email?.toLowerCase()===SUPER_ADMIN_EMAIL) return <span className="role-badge super">⭐ Super Admin</span>;
+    if (m.email?.toLowerCase()===MINI_ADMIN_EMAIL)  return <span className="role-badge mini">🔑 Admin</span>;
+    return null;
+  };
+  return (
+    <div>
+      <div className="page-header">
+        <div>
+          <div className="page-title">⚙️ Team Members</div>
+          <div className="page-subtitle">{team.length} membro{team.length!==1?"s":""}{missing>0&&<span style={{color:"#b45309",marginLeft:8}}>· ⚠️ {missing} sem email</span>}</div>
+        </div>
+        <button className="btn btn-primary" onClick={()=>setShowAdd(true)}>＋ Add Member</button>
+      </div>
+      {missing>0&&(
+        <div className="info-box warning">
+          <strong>⚠️ Endereços de email em falta</strong>
+          {missing} membro{missing!==1?"s":""} ainda não {missing!==1?"têm":"tem"} email definido e não {missing!==1?"conseguem":"consegue"} iniciar sessão. Clica no aviso amarelo na linha do membro para adicionar.
+        </div>
+      )}
+      {team.length===0 ? (
+        <div className="empty"><div className="empty-icon">👤</div><div className="empty-title">Sem membros</div><div style={{marginTop:16}}><button className="btn btn-primary" onClick={()=>setShowAdd(true)}>＋ Adicionar</button></div></div>
+      ) : (
+        <div className="member-grid">
+          {team.map(m=>{
+            const vc=vacations.filter(v=>v.member===m.name).length;
+            const wd=vacations.filter(v=>v.member===m.name).reduce((s,v)=>s+wdays(v.startDate,v.endDate),0);
+            const isEC=editColorFor?.id===m.id, isEE=editEmailFor?.id===m.id;
+            return (
+              <div key={m.id} className="member-row">
+                <div className="member-row-avatar" style={{background:m.color,outline:isEC?`3px solid ${m.color}`:"none",outlineOffset:2}} title="Clica para mudar cor" onClick={()=>{setEditColorFor(isEC?null:m);setEditEmailFor(null);}}>{m.initials}</div>
+                <div style={{flex:1,minWidth:0}}>
+                  <div className="member-row-name">{m.name} {getRoleBadge(m)}</div>
+                  <div className="member-row-meta">{vc} registo{vc!==1?"s":""} · {wd} dia{wd!==1?"s":""} útei{wd!==1?"s":"l"}</div>
+                  {isEE ? (
+                    <div className="email-inline-edit">
+                      <input ref={emailRef} type="email" className="email-inline-input" value={emailInput} onChange={e=>setEmailInput(e.target.value)} placeholder="email@exemplo.com" onKeyDown={e=>{if(e.key==="Enter")saveEmail(m);if(e.key==="Escape")setEditEmailFor(null);}}/>
+                      <button className="btn btn-primary" style={{padding:"7px 14px",fontSize:13}} onClick={()=>saveEmail(m)}>Guardar</button>
+                      <button className="btn-cancel" style={{padding:"7px 12px",fontSize:13}} onClick={()=>setEditEmailFor(null)}>✕</button>
+                    </div>
+                  ) : (
+                    <div style={{marginTop:4}}>
+                      {m.email
+                        ? <span className="email-badge">✉️ {m.email}<button className="email-edit-icon" onClick={()=>startEmailEdit(m)}>✏️</button></span>
+                        : <span className="email-missing" onClick={()=>startEmailEdit(m)}>⚠️ Sem email — clica para adicionar</span>
+                      }
+                    </div>
+                  )}
+                  {isEC&&(
+                    <div className="color-grid" style={{marginTop:10}}>
+                      {COLOR_PALETTE.map(c=><div key={c} className={`color-swatch${m.color===c?" selected":""}`} style={{background:c}} onClick={()=>{onColorChange(m,c);setEditColorFor(null);}}/>)}
+                    </div>
+                  )}
+                </div>
+                <div className="member-row-actions"><button className="btn-danger-ghost" onClick={()=>onRemove(m)}>Remover</button></div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      {showAdd&&<AddMemberModal team={team} onAdd={(n,c,e)=>{onAdd(n,c,e);setShowAdd(false);}} onClose={()=>setShowAdd(false)}/>}
+    </div>
+  );
+}
+
+/* ─── ADD MEMBER MODAL ─── */
+function AddMemberModal({ team, onAdd, onClose }) {
+  const [name,  setName]  = useState("");
+  const [email, setEmail] = useState("");
+  const [color, setColor] = useState(()=>getNextColor(team));
+  const handleSave = () => {
+    if (!name.trim())  return alert("Introduz o nome.");
+    if (!email.trim()) return alert("Introduz o email.");
+    if (!isValidEmail(email)) return alert("Email inválido.");
+    if (team.some(m=>m.name.toLowerCase()===name.trim().toLowerCase())) return alert("Já existe um membro com este nome.");
+    if (team.some(m=>m.email&&m.email.toLowerCase()===email.trim().toLowerCase())) return alert("Já existe um membro com este email.");
+    onAdd(name.trim(),color,email.trim());
+  };
+  return (
+    <div className="modal-overlay" onMouseDown={e=>{if(e.target===e.currentTarget)onClose();}}>
+      <div className="modal">
+        <div className="modal-title">＋ Adicionar Membro<button className="modal-close" onClick={onClose}>×</button></div>
+        <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:22,padding:"14px 16px",background:"#f8fafc",borderRadius:10}}>
+          <div className="avatar-preview" style={{background:color}}>{toInitials(name)||"?"}</div>
+          <div>
+            <div style={{fontWeight:700,fontSize:16,color:name?"#0f172a":"#94a3b8"}}>{name||"Nome completo"}</div>
+            <div style={{fontSize:12,color:"#94a3b8",marginTop:2}}>{email||"email@exemplo.com"}</div>
+          </div>
+        </div>
+        <div className="form-group"><label className="form-label">Nome completo *</label><input type="text" className="form-input" placeholder="ex. Maria Silva" value={name} onChange={e=>setName(e.target.value)} autoFocus/></div>
+        <div className="form-group">
+          <label className="form-label">Email * <span style={{fontWeight:400,color:"#94a3b8"}}>(conta Google para início de sessão)</span></label>
+          <input type="email" className="form-input" placeholder="ex. maria.silva@gmail.com" value={email} onChange={e=>setEmail(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")handleSave();}}/>
+        </div>
+        <div className="form-group"><label className="form-label">Cor</label><div className="color-grid">{COLOR_PALETTE.map(c=><div key={c} className={`color-swatch${color===c?" selected":""}`} style={{background:c}} onClick={()=>setColor(c)}/>)}</div></div>
+        <div className="modal-actions"><button className="btn-cancel" onClick={onClose}>Cancelar</button><button className="btn btn-primary" onClick={handleSave}>Adicionar</button></div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── TEAM VIEW ─── */
+function TeamView({ vacations, team, year, month, onPrev, onNext, onPersonClick, onAdd, userEmail, onCycleStatus }) {
+  const now=today(), numDays=dim(year,month);
+  const dayMap=useMemo(()=>{ const m={}; vacations.forEach(v=>expand(v.startDate,v.endDate).forEach(d=>{const k=`${d}__${v.member}`;if(!m[k])m[k]=v;})); return m; },[vacations]);
+  const days=useMemo(()=>Array.from({length:numDays},(_,i)=>{const d=i+1,s=ds(year,month,d),dow=parse(s).getDay();return{d,s,dow,isWeekend:dow===0||dow===6,isToday:s===now};}),[year,month,numDays,now]);
+  const offToday=team.filter(m=>dayMap[`${now}__${m.name}`]);
+  const totAppr=vacations.filter(v=>v.status==="approved").reduce((s,v)=>s+wdays(v.startDate,v.endDate),0);
+  const totPend=vacations.filter(v=>v.status==="pending" ).reduce((s,v)=>s+wdays(v.startDate,v.endDate),0);
+  return (
+    <div>
+      <div className="summary-strip">
+        <div className="summary-card"><div className="summary-icon">🏖️</div><div><div className="summary-val" style={{color:"#4f46e5"}}>{vacations.length}</div><div className="summary-lbl">Total</div></div></div>
+        <div className="summary-card"><div className="summary-icon">✅</div><div><div className="summary-val" style={{color:"#16a34a"}}>{totAppr}</div><div className="summary-lbl">Dias aprovados</div></div></div>
+        <div className="summary-card"><div className="summary-icon">⏳</div><div><div className="summary-val" style={{color:"#d97706"}}>{totPend}</div><div className="summary-lbl">Dias pendentes</div></div></div>
+        <div className="summary-card"><div className="summary-icon">👤</div><div><div className="summary-val" style={{color:offToday.length>0?"#dc2626":"#94a3b8"}}>{offToday.length}</div><div className="summary-lbl">Ausentes hoje</div></div></div>
+        <div className="summary-card"><div className="summary-icon">🧑‍🤝‍🧑</div><div><div className="summary-val" style={{color:"#4f46e5"}}>{team.length}</div><div className="summary-lbl">Equipa</div></div></div>
+      </div>
+      <div className="page-header">
+        <div><div className="page-title">Visão Geral da Equipa</div><div className="page-subtitle">{offToday.length>0?`Hoje ausente${offToday.length!==1?"s":""}: ${offToday.map(m=>m.name.split(" ")[0]).join(", ")}`:"Toda a equipa presente hoje"}</div></div>
+        <div className="header-actions">
+          <div className="month-nav"><button className="month-nav-btn" onClick={onPrev}>◀</button><span className="month-label">{MONTHS_EN[month]} {year}</span><button className="month-nav-btn" onClick={onNext}>▶</button></div>
+          <button className="btn btn-primary" onClick={onAdd}>＋ Adicionar Férias</button>
+        </div>
+      </div>
+      <div className="gantt-wrap"><div className="gantt-scroll">
+        <table className="gantt-table">
+          <thead><tr>
+            <th className="gantt-name-th">Membro</th>
+            {days.map(({d,dow,isWeekend,isToday})=>(
+              <th key={d} className={`gantt-day-th${isWeekend?" weekend":""}${isToday?" today-col":""}`}>
+                <div className={isToday?"today-ring":"day-num"}>{d}</div>
+                <div className="day-name">{WEEKDAYS[dow][0]}</div>
+              </th>
+            ))}
+          </tr></thead>
+          <tbody>
+            {team.map(member=>(
+              <tr key={member.id} className="gantt-row">
+                <td className="gantt-name-td" onClick={()=>onPersonClick(member.name)}>
+                  <div className="gantt-member-inner"><div className="initials" style={{background:member.color}}>{member.initials}</div><span className="member-first">{member.name.split(" ")[0]}</span></div>
+                </td>
+                {days.map(({d,s,isWeekend,isToday})=>{
+                  const entry=dayMap[`${s}__${member.name}`];
+                  let pS={},pC="";
+                  if(entry){
+                    const pv=ds(year,month,d-1),nx=ds(year,month,d+1);
+                    const hP=d>1&&dayMap[`${pv}__${member.name}`]?.id===entry.id;
+                    const hN=d<numDays&&dayMap[`${nx}__${member.name}`]?.id===entry.id;
+                    pS={background:STATUS_COLORS[entry.status]||member.color,borderRadius:`${!hP?"5px":"0"} ${!hN?"5px":"0"} ${!hN?"5px":"0"} ${!hP?"5px":"0"}`,left:hP?"0":"2px",right:hN?"0":"2px"};
+                    pC=entry.status==="pending"?"pending-pill":entry.status==="rejected"?"rejected-pill":"";
+                  }
+                  return(
+                    <td key={d} className={`gantt-cell-td${isWeekend?" weekend":""}${isToday?" today-col":""}`}>
+                      {entry&&<div className="vac-pill" title={`${member.name}: ${fmt(entry.startDate,entry.endDate)} — ${entry.status}${entry.note?` · "${entry.note}"`:""}`}><div className={`vac-pill-inner${pC?" "+pC:""}`} style={pS}/></div>}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div></div>
+      <div style={{display:"flex",justifyContent:"flex-end",marginTop:12}}>
+        <div className="legend">
+          <div className="legend-item"><div className="legend-swatch" style={{background:"#16a34a"}}/> Aprovado</div>
+          <div className="legend-item"><div className="legend-swatch" style={{background:"#f59e0b",opacity:0.75}}/> Pendente</div>
+          <div className="legend-item"><div className="legend-swatch" style={{background:"#ef4444",opacity:0.6}}/> Rejeitado</div>
+          <div className="legend-item"><div className="legend-swatch" style={{background:"#f1f5f9",border:"1px dashed #cbd5e1"}}/> Fim de semana</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── PERSON VIEW ─── */
+function PersonView({ member, vacations, onAdd, onEdit, onDelete, onCycleStatus, userEmail }) {
+  const sorted=[...vacations].sort((a,b)=>a.startDate.localeCompare(b.startDate));
+  const stats=useMemo(()=>{
+    const tot=vacations.reduce((s,v)=>s+wdays(v.startDate,v.endDate),0);
+    const appr=vacations.filter(v=>v.status==="approved").reduce((s,v)=>s+wdays(v.startDate,v.endDate),0);
+    const pend=vacations.filter(v=>v.status==="pending" ).reduce((s,v)=>s+wdays(v.startDate,v.endDate),0);
+    const rej =vacations.filter(v=>v.status==="rejected").reduce((s,v)=>s+wdays(v.startDate,v.endDate),0);
+    return{tot,appr,pend,rej};
+  },[vacations]);
+  const userCanApprove = canApprove(userEmail, member.name);
+  return (
+    <div>
+      <div className="person-header">
+        <div className="person-avatar" style={{background:member.color}}>{member.initials}</div>
+        <div style={{flex:1}}>
+          <div className="person-name">{member.name}</div>
+          {member.email&&<div style={{fontSize:12,color:"#94a3b8",marginTop:3}}>✉️ {member.email}</div>}
+          {member.name===TIAGO_NAME&&<div style={{fontSize:12,color:"#16a34a",fontWeight:600,marginTop:3}}>⭐ Super Admin — férias aprovadas automaticamente</div>}
+          {member.name===CATIA_NAME&&<div style={{fontSize:12,color:"#7c3aed",fontWeight:600,marginTop:3}}>🔑 Admin — aprova toda a equipa exceto Tiago</div>}
+          <div style={{display:"flex",gap:8,flexWrap:"wrap",marginTop:8}}>
+            <span className="person-stat-pill stat-total">📅 {stats.tot} dia{stats.tot!==1?"s":""} total</span>
+            {stats.appr>0&&<span className="person-stat-pill stat-approved">✅ {stats.appr} aprovado{stats.appr!==1?"s":""}</span>}
+            {stats.pend>0&&<span className="person-stat-pill stat-pending">⏳ {stats.pend} pendente{stats.pend!==1?"s":""}</span>}
+            {stats.rej >0&&<span className="person-stat-pill stat-rejected">❌ {stats.rej} rejeitado{stats.rej!==1?"s":""}</span>}
+          </div>
+        </div>
+        <button className="btn btn-primary" onClick={onAdd}>＋ Adicionar Férias</button>
+      </div>
+      {sorted.length===0 ? (
+        <div className="empty"><div className="empty-icon">🏖️</div><div className="empty-title">Sem férias marcadas</div><div style={{marginTop:16}}><button className="btn btn-primary" onClick={onAdd}>＋ Adicionar</button></div></div>
+      ) : (
+        <div className="vac-list">
+          {sorted.map(v=>{
+            const wd=wdays(v.startDate,v.endDate),cd=expand(v.startDate,v.endDate).length;
+            return (
+              <div key={v.id} className={`vac-card ${v.status}`}>
+                <div className="vac-card-dates">
+                  <div className="vac-date-range">{fmt(v.startDate,v.endDate)}</div>
+                  <div className="vac-meta">{wd} dia{wd!==1?"s":""} útei{wd!==1?"s":"l"}{cd!==wd?` (${cd} dias corridos)`:""}</div>
+                  {v.note&&<div className="vac-note">💬 {v.note}</div>}
+                </div>
+                <div className="vac-card-actions">
+                  <span className={`status-badge ${v.status}${userCanApprove?" clickable":""}`} onClick={userCanApprove?()=>onCycleStatus(v.id):undefined} title={userCanApprove?"Clica para alterar: Pendente → Aprovado → Rejeitado":v.status==="approved"?"Aprovado":v.status==="pending"?"Pendente":"Rejeitado"}>
+                    {v.status==="approved"?"✅ Aprovado":v.status==="pending"?"⏳ Pendente":"❌ Rejeitado"}
+                  </span>
+                  <button className="btn-edit-ghost" onClick={()=>onEdit(v)}>✏️ Editar</button>
+                  <button className="btn-danger-ghost" onClick={()=>onDelete(v.id)}>🗑️</button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─── VACATION MODAL ─── */
+function VacationModal({ mode, defaultMember, entry, team, onSave, onClose, userEmail }) {
+  const [member,    setMember]    = useState(entry?.member    || defaultMember || (team[0]?.name||""));
+  const [startDate, setStartDate] = useState(entry?.startDate || "");
+  const [endDate,   setEndDate]   = useState(entry?.endDate   || "");
+  const [status,    setStatus]    = useState(entry?.status    || "pending");
+  const [note,      setNote]      = useState(entry?.note      || "");
+  const wd=startDate&&endDate&&endDate>=startDate?wdays(startDate,endDate):null;
+  const adminUser  = isAnyAdmin(userEmail);
+  const isTiagoNew = member===TIAGO_NAME && mode==='add';
+  const showSel    = !isTiagoNew && (adminUser || mode==='edit');
+  const handleSave = () => {
+    if(!member||!startDate||!endDate) return alert("Preenche todos os campos obrigatórios.");
+    if(endDate<startDate) return alert("A data de fim deve ser igual ou posterior à data de início.");
+    const finalStatus = isTiagoNew ? 'approved' : (!adminUser&&mode==='add') ? 'pending' : status;
+    onSave({id:entry?.id,member,startDate,endDate,status:finalStatus,note:note.trim()});
+  };
+  return (
+    <div className="modal-overlay" onMouseDown={e=>{if(e.target===e.currentTarget)onClose();}}>
+      <div className="modal">
+        <div className="modal-title">{mode==="edit"?"✏️ Editar Férias":"＋ Adicionar Férias"}<button className="modal-close" onClick={onClose}>×</button></div>
+        <div className="form-group"><label className="form-label">Membro *</label>
+          <select className="form-input" value={member} onChange={e=>setMember(e.target.value)}>
+            {team.map(m=><option key={m.id} value={m.name}>{m.name}</option>)}
+          </select>
+        </div>
+        <div className="form-row">
+          <div className="form-group"><label className="form-label">Data início *</label><input type="date" className="form-input" value={startDate} onChange={e=>{setStartDate(e.target.value);if(!endDate||e.target.value>endDate)setEndDate(e.target.value);}}/></div>
+          <div className="form-group"><label className="form-label">Data fim *</label><input type="date" className="form-input" value={endDate} min={startDate} onChange={e=>setEndDate(e.target.value)}/></div>
+        </div>
+        {wd!==null&&<div style={{fontSize:12,color:"#64748b",marginTop:-10,marginBottom:14,paddingLeft:2}}>📅 {wd} dia{wd!==1?"s":""} útei{wd!==1?"s":"l"}</div>}
+        <div className="form-group"><label className="form-label">Estado</label>
+          {isTiagoNew ? <div className="status-locked approved">✅ Aprovado automaticamente — férias do Tiago são sempre verdes</div>
+           : showSel ? <div className="status-selector">{["pending","approved","rejected"].map(s=><div key={s} className={`status-option${status===s?" sel-"+s:""}`} onClick={()=>setStatus(s)}>{s==="pending"?"⏳ Pendente":s==="approved"?"✅ Aprovado":"❌ Rejeitado"}</div>)}</div>
+           : <div className="status-locked pending">⏳ Pendente — aguarda aprovação</div>}
+        </div>
+        <div className="form-group"><label className="form-label">Nota <span style={{fontWeight:400,color:"#94a3b8"}}>(opcional)</span></label><input type="text" className="form-input" placeholder="ex. Férias de verão, Baixa médica…" value={note} onChange={e=>setNote(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")handleSave();}}/></div>
+        <div className="modal-actions"><button className="btn-cancel" onClick={onClose}>Cancelar</button><button className="btn btn-primary" onClick={handleSave}>{mode==="edit"?"Guardar":"Adicionar"}</button></div>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.render(<App />, document.getElementById("root"));
+</script>
+</body>
+</html>
