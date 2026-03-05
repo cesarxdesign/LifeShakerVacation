@@ -33,6 +33,17 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Ne
 .conn-dot.online  { background: #16a34a; box-shadow: 0 0 0 2px #dcfce7; }
 .conn-dot.offline { background: #94a3b8; }
 .pending-badge { background: #ef4444; color: #fff; border-radius: 99px; font-size: 10px; font-weight: 800; min-width: 17px; height: 17px; padding: 0 5px; display: inline-flex; align-items: center; justify-content: center; line-height: 1; }
+/* PEOPLE DROPDOWN */
+.people-dd-wrap { position: relative; display: flex; align-items: stretch; }
+.people-dd-caret { font-size: 9px; opacity: 0.5; margin-left: 2px; }
+.people-dd-panel { position: absolute; top: calc(100% + 2px); left: 0; background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; box-shadow: 0 8px 28px rgba(0,0,0,0.13); min-width: 210px; z-index: 500; padding: 5px 0; }
+.people-dd-item { display: flex; align-items: center; gap: 9px; padding: 7px 14px; font-size: 13px; color: #374151; cursor: default; }
+.people-dd-item:hover { background: #f8fafc; }
+.people-dd-item input[type="checkbox"] { cursor: pointer; accent-color: #4f46e5; flex-shrink: 0; width: 14px; height: 14px; }
+.people-dd-item-name { cursor: pointer; flex: 1; line-height: 1.3; }
+.people-dd-item-name:hover { color: #4f46e5; text-decoration: underline; }
+.people-dd-sep { height: 1px; background: #e2e8f0; margin: 4px 0; }
+.people-dd-count { font-size: 10px; background: #ede9fe; color: #5b21b6; border-radius: 99px; padding: 1px 6px; font-weight: 700; margin-left: 2px; }
 /* AUTH PILL */
 .auth-user-pill { display: flex; align-items: center; gap: 10px; padding: 0 16px; border-left: 1px solid #e2e8f0; margin-left: auto; flex-shrink: 0; min-height: 52px; }
 .auth-avatar { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
@@ -210,6 +221,22 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Ne
   .auth-card { padding: 36px 24px; }
   .auth-name { display: none; }
 }
+/* HISTORY VIEW */
+.history-wrap { max-width: 860px; margin: 0 auto; padding: 32px 24px; }
+.history-title { font-size: 22px; font-weight: 800; color: #0f172a; margin-bottom: 6px; }
+.history-sub { font-size: 13px; color: #94a3b8; margin-bottom: 28px; }
+.history-log { display: flex; flex-direction: column; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; background: #fff; }
+.history-entry { display: grid; grid-template-columns: 120px 150px 1fr; align-items: baseline; padding: 10px 18px; border-bottom: 1px solid #f1f5f9; font-size: 13px; gap: 16px; transition: background 0.1s; }
+.history-entry:last-child { border-bottom: none; }
+.history-entry:hover { background: #f8fafc; }
+.history-ts { color: #94a3b8; font-size: 11px; white-space: nowrap; line-height: 1.5; }
+.history-ts-date { display: block; font-weight: 600; color: #64748b; font-size: 12px; }
+.history-ts-time { display: block; color: #94a3b8; font-size: 11px; }
+.history-actor { font-weight: 700; color: #4f46e5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.history-line { color: #1e293b; line-height: 1.5; }
+.history-target { font-weight: 700; color: #0369a1; background: #e0f2fe; border-radius: 4px; padding: 0 4px; }
+.history-empty { text-align: center; padding: 60px 20px; color: #94a3b8; font-size: 14px; }
+.nav-tab.history-tab { border-left: 1px solid #e2e8f0; }
 </style></head>
 <body>
 <div id="root"></div>
@@ -298,11 +325,12 @@ function isAnyAdmin(userEmail) {
   return ['super-admin','mini-admin','hidden-admin'].includes(getUserRole(userEmail));
 }
 /* ─── PERMISSION LOGIC FOR APPROVAL MODAL ─── */
-function getApprovalModalConfig(userEmail, vacation) {
+function getApprovalModalConfig(userEmail, vacation, team) {
   const role = getUserRole(userEmail);
   const isSuperAdmin = role === 'super-admin' || role === 'hidden-admin';
   const isMiniAdmin = role === 'mini-admin';
-  const isOwnEntry = vacation.member === (DEFAULT_TEAM.find(m => m.email === userEmail)?.name || '');
+  const teamToSearch = (team && team.length) ? team : DEFAULT_TEAM;
+  const isOwnEntry = vacation.member === (teamToSearch.find(m => m.email === userEmail)?.name || '');
 
   if (isSuperAdmin) {
     return { showApprove: true, showReject: true, showDelete: true, canApprove: true, canReject: true, canDelete: true };
@@ -484,7 +512,7 @@ function AuthUserPill({ user }) {
 function QuickApprovalModal({ vacation, team, userEmail, onApprove, onReject, onDelete, onClose }) {
   if (!vacation) return null;
   const member = team.find(m => m.name === vacation.member) || { name: vacation.member };
-  const config = getApprovalModalConfig(userEmail, vacation);
+  const config = getApprovalModalConfig(userEmail, vacation, team);
   const wd = wdays(vacation.startDate, vacation.endDate);
 
   return (
@@ -527,6 +555,94 @@ function QuickApprovalModal({ vacation, team, userEmail, onApprove, onReject, on
     </div>
   );
 }
+/* ─── HISTORY VIEW ─── */
+function HistoryView({ db }) {
+  const [entries, setEntries] = React.useState(null);
+  React.useEffect(() => {
+    const ref = db.ref('history').orderByChild('ts').limitToLast(300);
+    ref.on('value', snap => {
+      const val = snap.val();
+      if (!val) { setEntries([]); return; }
+      const list = Object.values(val).sort((a, b) => b.ts - a.ts);
+      setEntries(list);
+    });
+    return () => ref.off();
+  }, []);
+  const fmtDate = ts => new Date(ts).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
+  const fmtTime = ts => new Date(ts).toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
+  const renderAction = (action, target) => {
+    if (!target || !action.includes(target)) return action;
+    const parts = action.split(target);
+    return parts.map((part, i) =>
+      i < parts.length - 1
+        ? <React.Fragment key={i}>{part}<span className="history-target">{target}</span></React.Fragment>
+        : part
+    );
+  };
+  return (
+    <div className="history-wrap">
+      <div className="history-title">📋 Activity Log</div>
+      <div className="history-sub">All actions recorded in real time. Visible to admins only.</div>
+      {entries === null && <div className="history-empty">Loading…</div>}
+      {entries !== null && entries.length === 0 && <div className="history-empty">No activity recorded yet.</div>}
+      {entries !== null && entries.length > 0 && (
+        <div className="history-log">
+          {entries.map(e => (
+            <div key={e.id} className="history-entry">
+              <div className="history-ts">
+                <span className="history-ts-date">{fmtDate(e.ts)}</span>
+                <span className="history-ts-time">{fmtTime(e.ts)}</span>
+              </div>
+              <div className="history-actor">{e.actor}</div>
+              <div className="history-line">{renderAction(e.action, e.target)}</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+/* ─── PEOPLE DROPDOWN ─── */
+function PeopleDropdown({ team, selected, onToggle, onSelectAll, onViewPerson }) {
+  const [open, setOpen] = React.useState(false);
+  const ref = React.useRef(null);
+  React.useEffect(() => {
+    const handler = e => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+  const allSelected = selected.length === team.length;
+  const label = allSelected
+    ? 'Everyone'
+    : selected.length === 1
+      ? team.find(m => m.name === selected[0])?.name.split(' ')[0] || 'Person'
+      : `${selected.length} people`;
+  return (
+    <div className="people-dd-wrap" ref={ref}>
+      <div className={`nav-tab ${open ? 'active' : ''}`} onClick={() => setOpen(o => !o)}>
+        <span>👤</span> {label}
+        {!allSelected && <span className="people-dd-count">{selected.length}/{team.length}</span>}
+        <span className="people-dd-caret">{open ? '▲' : '▼'}</span>
+      </div>
+      {open && (
+        <div className="people-dd-panel">
+          <div className="people-dd-item" onClick={() => onSelectAll(!allSelected)}>
+            <input type="checkbox" checked={allSelected} onChange={() => onSelectAll(!allSelected)} onClick={e => e.stopPropagation()} />
+            <span style={{fontWeight:700, color:'#0f172a'}}>Everyone</span>
+          </div>
+          <div className="people-dd-sep"/>
+          {team.map(m => (
+            <div key={m.id} className="people-dd-item">
+              <input type="checkbox" checked={selected.includes(m.name)} onChange={() => onToggle(m.name)} onClick={e => e.stopPropagation()} />
+              <span className="nav-dot" style={{background: m.color}}/>
+              <span className="people-dd-item-name" onClick={() => { onViewPerson(m.name); setOpen(false); }}>{m.name}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 /* ─── APP ─── */
 function App() {
   if (!IS_CONFIGURED) return <SetupScreen />;
@@ -537,6 +653,7 @@ function App() {
   const [vacations,      setVacations]      = useState(null);
   const [online,         setOnline]         = useState(false);
   const [view,           setView]           = useState("team");
+  const [selectedMembers, setSelectedMembers] = useState(null); // null = "all" sentinel until team loads
   const [year,           setYear]           = useState(2026);
   const [month,          setMonth]          = useState(()=>{ const n=new Date(); return n.getFullYear()===2026?n.getMonth():0; });
   const [modal,          setModal]          = useState(null);
@@ -561,6 +678,22 @@ function App() {
   }, [authUser]);
   useEffect(() => { const h=e=>{if(e.key==="Escape"){setModal(null);setApprovalModal(null);}}; window.addEventListener("keydown",h); return()=>window.removeEventListener("keydown",h); }, []);
 
+  // Sync selectedMembers when team first loads (or a new member is added)
+  useEffect(() => {
+    if (!team) return;
+    setSelectedMembers(prev => {
+      if (prev === null) return team.map(m => m.name); // first load: select all
+      const names = team.map(m => m.name);
+      // keep existing selections, auto-add any brand-new member
+      const kept = prev.filter(n => names.includes(n));
+      const added = names.filter(n => !prev.includes(n));
+      return [...kept, ...added];
+    });
+  }, [team]);
+
+  const toggleMember = name => setSelectedMembers(prev => prev.includes(name) ? prev.filter(n => n !== name) : [...prev, name]);
+  const selectAllMembers = all => setSelectedMembers(all ? team.map(m => m.name) : []);
+
   // Compute role + pendingCount HERE — before any early returns — so hook call order is always the same
   const role = authUser ? getUserRole(authUser.email) : 'member';
   const pendingCount = useMemo(() => {
@@ -584,30 +717,46 @@ function App() {
 
   const prevMonth = ()=>{ if(month===0){setYear(y=>y-1);setMonth(11);}else setMonth(m=>m-1); };
   const nextMonth = ()=>{ if(month===11){setYear(y=>y+1);setMonth(0);}else setMonth(m=>m+1); };
+  const logAction = (action, target) => {
+    const actor = team?.find(m => m.email === authUser?.email)?.name || authUser?.displayName || authUser?.email || 'Unknown';
+    const id = uid();
+    db.ref(`history/${id}`).set({ id, actor, action, target: target || null, ts: Date.now() });
+  };
   const saveVacation = (data) => {
     let d = {...data};
     if (d.member === TIAGO_NAME && modal.mode === 'add') d.status = 'approved';
     if (modal.mode === "edit") {
       db.ref(`vacations/${d.id}`).set(d);
+      logAction(`edited vacation for ${d.member} (${fmt(d.startDate, d.endDate)})`, d.member);
     } else {
       const v = {...d, id: uid()};
       db.ref(`vacations/${v.id}`).set(v);
       if (v.member !== TIAGO_NAME) notifyNewRequest(v);
+      logAction(`added a vacation for ${v.member} (${fmt(v.startDate, v.endDate)})`, v.member);
     }
     setModal(null);
   };
-  const deleteVacation = (id) => { if(window.confirm("Eliminar este registo de férias?")) db.ref(`vacations/${id}`).remove(); setApprovalModal(null); };
+  const deleteVacation = (id) => {
+    if (window.confirm("Eliminar este registo de férias?")) {
+      const v = (vacations||[]).find(x => x.id === id);
+      db.ref(`vacations/${id}`).remove();
+      if (v) logAction(`deleted ${v.member}'s vacation (${fmt(v.startDate, v.endDate)})`, v.member);
+    }
+    setApprovalModal(null);
+  };
   const approveVacation = (vacation) => {
-    const config = getApprovalModalConfig(authUser.email, vacation);
+    const config = getApprovalModalConfig(authUser.email, vacation, team);
     if (!config.canApprove) return;
     db.ref(`vacations/${vacation.id}/status`).set('approved');
     notifyApproval(vacation, authUser.email, team);
+    logAction(`approved ${vacation.member}'s vacation (${fmt(vacation.startDate, vacation.endDate)})`, vacation.member);
     setApprovalModal(null);
   };
   const rejectVacation = (vacation) => {
-    const config = getApprovalModalConfig(authUser.email, vacation);
+    const config = getApprovalModalConfig(authUser.email, vacation, team);
     if (!config.canReject) return;
     db.ref(`vacations/${vacation.id}/status`).set('rejected');
+    logAction(`rejected ${vacation.member}'s vacation (${fmt(vacation.startDate, vacation.endDate)})`, vacation.member);
     setApprovalModal(null);
   };
   const cycleStatus = (id) => {
@@ -616,24 +765,31 @@ function App() {
     const newStatus = NEXT_STATUS[v.status];
     db.ref(`vacations/${id}/status`).set(newStatus);
     if (newStatus === 'approved') notifyApproval(v, authUser.email, team);
+    logAction(`changed ${v.member}'s vacation status to ${newStatus} (${fmt(v.startDate, v.endDate)})`, v.member);
   };
-  const addMember         = (name,color,email) => { const id=uid(); db.ref(`team/${id}`).set({id,name:name.trim(),color,initials:toInitials(name),email:email.trim().toLowerCase()}); };
-  const removeMember      = (member) => {
+  const addMember = (name,color,email) => {
+    const id=uid();
+    db.ref(`team/${id}`).set({id,name:name.trim(),color,initials:toInitials(name),email:email.trim().toLowerCase()});
+    logAction(`added team member ${name.trim()}`, name.trim());
+  };
+  const removeMember = (member) => {
     const vc=(vacations||[]).filter(v=>v.member===member.name).length;
     const msg=vc>0?`Remover ${member.name}? Tem ${vc} registo${vc!==1?"s":""} de férias.\n\nOK = remover membro E todos os seus registos.\nCancelar = abortar.`:`Remover ${member.name} da equipa?`;
     if(!window.confirm(msg)) return;
     db.ref(`team/${member.id}`).remove();
     if(vc>0)(vacations||[]).filter(v=>v.member===member.name).forEach(v=>db.ref(`vacations/${v.id}`).remove());
     if(view===member.name) setView("team");
+    logAction(`removed team member ${member.name}`, member.name);
   };
-  const updateMemberColor = (member,color) => db.ref(`team/${member.id}/color`).set(color);
-  const updateMemberEmail = (member,email) => db.ref(`team/${member.id}/email`).set(email.trim().toLowerCase());
+  const updateMemberColor = (member,color) => { db.ref(`team/${member.id}/color`).set(color); logAction(`updated ${member.name}'s colour`, member.name); };
+  const updateMemberEmail = (member,email) => { db.ref(`team/${member.id}/email`).set(email.trim().toLowerCase()); logAction(`updated ${member.name}'s email`, member.name); };
+
   const openAdd  = (def) => setModal({mode:"add",  userEmail:authUser.email, defaultMember:def||(view!=="team"&&view!=="manage"?view:(team&&team[0]?.name)||"")});
   const openEdit = (entry) => setModal({mode:"edit", userEmail:authUser.email, entry});
   const currentMember = team?.find(m=>m.name===view);
 
   const handleVacationClick = (vacation) => {
-    const config = getApprovalModalConfig(authUser.email, vacation);
+    const config = getApprovalModalConfig(authUser.email, vacation, team);
     if (config.showApprove || config.showReject || config.showDelete) {
       setApprovalModal(vacation);
     }
@@ -648,18 +804,22 @@ function App() {
           <span>👥</span> Team {pendingCount>0 && <span className="pending-badge">{pendingCount}</span>}
         </div>
         <div className="nav-divider"/>
-        {team.map(m=>(
-          <div key={m.id} className={`nav-tab ${view===m.name?"active":""}`} onClick={()=>setView(m.name)}>
-            <span className="nav-dot" style={{background:m.color}}/>{m.name.split(" ")[0]}
-          </div>
-        ))}
+        <PeopleDropdown
+          team={team}
+          selected={selectedMembers || team.map(m=>m.name)}
+          onToggle={toggleMember}
+          onSelectAll={selectAllMembers}
+          onViewPerson={name=>{setView(name);}}
+        />
         <div className={`nav-tab manage-tab ${view==="manage"?"active":""}`} onClick={()=>setView("manage")}>⚙️ Members</div>
+        {isAnyAdmin(authUser.email) && <div className={`nav-tab history-tab ${view==="history"?"active":""}`} onClick={()=>setView("history")}>📋 History</div>}
         <AuthUserPill user={authUser}/>
       </nav>
       <div className="main">
-        {view==="team"   && <TeamView vacations={vacations} team={team} year={year} month={month} onPrev={prevMonth} onNext={nextMonth} onPersonClick={n=>setView(n)} onAdd={()=>openAdd(null)} userEmail={authUser.email} onCycleStatus={cycleStatus} onVacationClick={handleVacationClick}/>}
+        {view==="team"   && <TeamView vacations={vacations} team={team.filter(m=>(selectedMembers||team.map(x=>x.name)).includes(m.name))} year={year} month={month} onPrev={prevMonth} onNext={nextMonth} onPersonClick={n=>setView(n)} onAdd={()=>openAdd(null)} userEmail={authUser.email} onCycleStatus={cycleStatus} onVacationClick={handleVacationClick}/>}
         {view==="manage" && <ManageTeamView team={team} vacations={vacations} onAdd={addMember} onRemove={removeMember} onColorChange={updateMemberColor} onEmailChange={updateMemberEmail} currentUserEmail={authUser.email}/>}
-        {view!=="team"&&view!=="manage"&&currentMember && <PersonView member={currentMember} vacations={vacations.filter(v=>v.member===currentMember.name)} onAdd={()=>openAdd(currentMember.name)} onEdit={openEdit} onDelete={deleteVacation} onCycleStatus={cycleStatus} userEmail={authUser.email} onVacationClick={handleVacationClick}/>}
+        {view==="history" && (isAnyAdmin(authUser.email) ? <HistoryView db={db}/> : (setView("team"),null))}
+        {view!=="team"&&view!=="manage"&&view!=="history"&&currentMember && <PersonView member={currentMember} vacations={vacations.filter(v=>v.member===currentMember.name)} onAdd={()=>openAdd(currentMember.name)} onEdit={openEdit} onDelete={deleteVacation} onCycleStatus={cycleStatus} userEmail={authUser.email} onVacationClick={handleVacationClick}/>}
       </div>
       {modal && <VacationModal mode={modal.mode} defaultMember={modal.defaultMember} entry={modal.entry} team={team} userEmail={modal.userEmail} onSave={saveVacation} onClose={()=>setModal(null)}/>}
       {approvalModal && <QuickApprovalModal vacation={approvalModal} team={team} userEmail={authUser.email} onApprove={approveVacation} onReject={rejectVacation} onDelete={deleteVacation} onClose={()=>setApprovalModal(null)}/>}
