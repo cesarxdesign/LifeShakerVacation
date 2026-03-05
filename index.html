@@ -110,6 +110,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Ne
 .gantt-cell-td { min-width: 32px; width: 32px; height: 44px; border-right: 1px solid #f1f5f9; position: relative; vertical-align: middle; }
 .gantt-cell-td.weekend { background: #f9fafb; }
 .gantt-cell-td.today-col { background: #f9f8ff; }
+.gantt-cell-td.gantt-add-cell { cursor: pointer; }
+.gantt-cell-td.gantt-add-cell:hover { background: rgba(79,70,229,0.06); }
+.gantt-cell-td.gantt-add-cell:hover::after { content: '+'; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: rgba(79,70,229,0.4); pointer-events: none; }
 .vac-pill { position: absolute; top: 8px; bottom: 8px; left: 0; right: 0; cursor: pointer; }
 .vac-pill-inner { position: absolute; top: 0; bottom: 0; left: 0; right: 0; }
 .vac-pill-inner.pending-pill  { opacity: 0.75; }
@@ -269,13 +272,19 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Ne
 .mini-cal { display:grid; grid-template-columns:repeat(7,1fr); gap:1px; }
 .mini-hdr { font-size:9px; font-weight:700; color:#94a3b8; text-align:center; padding:2px 0 4px; }
 .mini-hdr.we { color:#cbd5e1; }
-.mini-cell { position:relative; aspect-ratio:1; display:flex; align-items:center; justify-content:center; border-radius:4px; min-width:0; overflow:hidden; }
+.mini-cell { position:relative; aspect-ratio:1; display:flex; align-items:center; justify-content:center; border-radius:4px; min-width:0; overflow:visible; }
 .mini-cell.we { background:#f9fafb; }
-.mini-cell-num { font-size:9px; color:#94a3b8; line-height:1; position:relative; z-index:2; pointer-events:none; }
+.mini-cell.pending-bg { background:#fef9c3; border-radius:4px; }
+.mini-cell-num { font-size:9px; color:#94a3b8; line-height:1; position:relative; z-index:1; pointer-events:none; user-select:none; }
 .mini-cell.we .mini-cell-num { color:#cbd5e1; }
-.mini-cell-dot { position:absolute; inset:1px; border-radius:3px; z-index:1; }
-.mini-cell-badge { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:800; cursor:pointer; border-radius:4px; z-index:2; transition:filter .12s; }
-.mini-cell-badge:hover { filter:brightness(.92); }
+.mini-cell.pending-bg .mini-cell-num { color:#92400e; }
+.mini-cell.yc-clickable { cursor:pointer; }
+.mini-cell.yc-clickable:hover { background:rgba(79,70,229,0.07) !important; }
+.mini-dot-approved { position:absolute; top:1px; right:1px; width:5px; height:5px; border-radius:50%; background:#16a34a; z-index:3; pointer-events:none; }
+.mini-cell-circle { position:absolute; width:68%; aspect-ratio:1; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:800; z-index:2; cursor:pointer; transition:filter .12s; }
+.mini-cell-circle:hover { filter:brightness(.88); }
+.mini-cell-circle.all-approved { background:#16a34a; color:#fff; }
+.mini-cell-circle.has-pending { background:#f59e0b; color:#fff; }
 </style></head>
 <body>
 <div id="root"></div>
@@ -857,7 +866,7 @@ function App() {
   const updateMemberColor = (member,color) => { db.ref(`team/${member.id}/color`).set(color); logAction(`updated ${member.name}'s colour`, member.name); };
   const updateMemberEmail = (member,email) => { db.ref(`team/${member.id}/email`).set(email.trim().toLowerCase()); logAction(`updated ${member.name}'s email`, member.name); };
 
-  const openAdd  = (def) => setModal({mode:"add",  userEmail:authUser.email, defaultMember:def||(view!=="team"&&view!=="manage"?view:(team&&team[0]?.name)||"")});
+  const openAdd  = (def, startDate) => setModal({mode:"add", userEmail:authUser.email, defaultMember:def||(view!=="team"&&view!=="manage"?view:(team&&team[0]?.name)||""), entry: startDate ? {startDate, endDate:""} : null});
   const openEdit = (entry) => setModal({mode:"edit", userEmail:authUser.email, entry});
   const currentMember = team?.find(m=>m.name===view);
 
@@ -881,7 +890,7 @@ function App() {
         <AuthUserPill user={authUser}/>
       </nav>
       <div className="main">
-        {view==="team"          && <TeamView vacations={vacations} team={team} year={year} month={month} onPrev={prevMonth} onNext={nextMonth} onPersonClick={n=>setView(n)} onAdd={()=>openAdd(null)} userEmail={authUser.email} onCycleStatus={cycleStatus} onVacationClick={handleVacationClick} onSetMonth={setMonth} onPrevYear={prevYear} onNextYear={nextYear} onGoToday={goToday} onFilterView={setView}/>}
+        {view==="team"          && <TeamView vacations={vacations} team={team} year={year} month={month} onPrev={prevMonth} onNext={nextMonth} onPersonClick={n=>setView(n)} onAdd={()=>openAdd(null)} onAddWithDate={(member,dateStr)=>openAdd(member,dateStr)} userEmail={authUser.email} onCycleStatus={cycleStatus} onVacationClick={handleVacationClick} onSetMonth={setMonth} onPrevYear={prevYear} onNextYear={nextYear} onGoToday={goToday} onFilterView={setView}/>}
         {view==="pending-list"  && <FilteredVacationsView title="Férias Pendentes" icon="⏳" vacations={vacations.filter(v=>v.status==='pending')} team={team} onDelete={deleteVacation} onCycleStatus={cycleStatus} onVacationClick={handleVacationClick} userEmail={authUser.email} onBack={()=>setView("team")}/>}
         {view==="approved-list" && <FilteredVacationsView title="Férias Aprovadas" icon="✅" vacations={vacations.filter(v=>v.status==='approved')} team={team} onDelete={deleteVacation} onCycleStatus={cycleStatus} onVacationClick={handleVacationClick} userEmail={authUser.email} onBack={()=>setView("team")}/>}
         {view==="out-today"     && <FilteredVacationsView title="Ausentes Hoje" icon="👤" vacations={vacations.filter(v=>v.status!=='rejected'&&expand(v.startDate,v.endDate).includes(today()))} team={team} onDelete={deleteVacation} onCycleStatus={cycleStatus} onVacationClick={handleVacationClick} userEmail={authUser.email} onBack={()=>setView("team")}/>}
@@ -1011,7 +1020,7 @@ function AddMemberModal({ team, onAdd, onClose }) {
 }
 /* ─── TEAM VIEW ─── */
 /* ─── YEAR VIEW ─── */
-function YearView({ vacations, team, year, onMonthClick }) {
+function YearView({ vacations, team, year, onMonthClick, onAddForDate }) {
   const dayMap = useMemo(() => {
     const m = {};
     vacations.forEach(v => {
@@ -1044,23 +1053,29 @@ function YearView({ vacations, team, year, onMonthClick }) {
                 const dow = parse(dateStr).getDay();
                 const isWe = dow === 0 || dow === 6;
                 const bookings = dayMap[dateStr] || [];
+                const count = bookings.length;
+                const allApproved = count > 0 && bookings.every(b => b.status === 'approved');
+                const hasPending  = bookings.some(b => b.status === 'pending');
+
                 let inner = null;
-                if (bookings.length === 1) {
-                  const { color, status } = bookings[0];
-                  inner = <div className="mini-cell-dot" style={{ background: color, opacity: status === 'approved' ? 0.82 : 0.35 }}/>;
-                } else if (bookings.length >= 2) {
-                  const allApproved = bookings.every(b => b.status === 'approved');
-                  const bg = allApproved ? '#dcfce7' : '#fef9c3';
-                  const fg = allApproved ? '#15803d' : '#a16207';
+                let cellMod = '';
+                if (count === 1) {
+                  if (allApproved) {
+                    inner = <span className="mini-dot-approved"/>;
+                  } else {
+                    cellMod = ' pending-bg';
+                  }
+                } else if (count >= 2) {
                   inner = (
-                    <div className="mini-cell-badge" style={{ background: bg, color: fg }}
-                      onClick={() => onMonthClick(mi)}>
-                      {bookings.length}
+                    <div className={`mini-cell-circle ${allApproved ? 'all-approved' : 'has-pending'}`}
+                      onClick={e=>{ e.stopPropagation(); onMonthClick(mi); }}>
+                      {count}
                     </div>
                   );
                 }
                 return (
-                  <div key={d} className={`mini-cell${isWe ? ' we' : ''}`}>
+                  <div key={d} className={`mini-cell${isWe ? ' we' : ''}${cellMod} yc-clickable`}
+                    onClick={()=>onAddForDate(dateStr)}>
                     <span className="mini-cell-num">{d}</span>
                     {inner}
                   </div>
@@ -1073,7 +1088,7 @@ function YearView({ vacations, team, year, onMonthClick }) {
     </div>
   );
 }
-function TeamView({ vacations, team, year, month, onPrev, onNext, onPersonClick, onAdd, userEmail, onCycleStatus, onVacationClick, onSetMonth, onPrevYear, onNextYear, onGoToday, onFilterView }) {
+function TeamView({ vacations, team, year, month, onPrev, onNext, onPersonClick, onAdd, onAddWithDate, userEmail, onCycleStatus, onVacationClick, onSetMonth, onPrevYear, onNextYear, onGoToday, onFilterView }) {
   const [yearMode, setYearMode] = React.useState(false);
   const goToMonth = (mi) => { onSetMonth(mi); setYearMode(false); };
 
@@ -1139,17 +1154,17 @@ function TeamView({ vacations, team, year, month, onPrev, onNext, onPersonClick,
       <div className="page-header">
         <div><div className="page-title">Visão Geral da Equipa</div><div className="page-subtitle">{offToday.length>0?`Hoje ausente${offToday.length!==1?"s":""}: ${offToday.map(m=>m.name.split(" ")[0]).join(", ")}`:"Toda a equipa presente hoje"}</div></div>
         <div className="header-actions">
+          <button className="btn btn-ghost today-btn" onClick={onGoToday}>Today</button>
+          {!yearMode && <div className="month-nav"><button className="month-nav-btn" onClick={onPrev}>◀</button><span className="month-label">{MONTHS_EN[month]} {year}</span><button className="month-nav-btn" onClick={onNext}>▶</button></div>}
+          {yearMode && <div className="month-nav"><button className="month-nav-btn" onClick={onPrevYear}>◀</button><span className="month-label">{year}</span><button className="month-nav-btn" onClick={onNextYear}>▶</button></div>}
           <div className="view-toggle">
             <button className={`view-toggle-btn${!yearMode?" active":""}`} onClick={()=>setYearMode(false)}>📅 Month</button>
             <button className={`view-toggle-btn${yearMode?" active":""}`} onClick={()=>setYearMode(true)}>🗓 Year</button>
           </div>
-          <button className="btn btn-ghost today-btn" onClick={onGoToday}>Today</button>
-          {!yearMode && <div className="month-nav"><button className="month-nav-btn" onClick={onPrev}>◀</button><span className="month-label">{MONTHS_EN[month]} {year}</span><button className="month-nav-btn" onClick={onNext}>▶</button></div>}
-          {yearMode && <div className="month-nav"><button className="month-nav-btn" onClick={onPrevYear}>◀</button><span className="month-label">{year}</span><button className="month-nav-btn" onClick={onNextYear}>▶</button></div>}
           <button className="btn btn-primary" onClick={onAdd}>＋ Adicionar Férias</button>
         </div>
       </div>
-      {yearMode && <YearView vacations={vacations} team={team} year={year} onMonthClick={goToMonth}/>}
+      {yearMode && <YearView vacations={vacations} team={team} year={year} onMonthClick={goToMonth} onAddForDate={dateStr=>onAddWithDate(null,dateStr)}/>}
       {!yearMode && <><div className="gantt-wrap"><div className="gantt-scroll">
         <table className="gantt-table">
           <thead><tr>
@@ -1177,9 +1192,11 @@ function TeamView({ vacations, team, year, month, onPrev, onNext, onPersonClick,
                     pS={background:STATUS_COLORS[entry.status]||member.color,borderRadius:`${!hP?"5px":"0"} ${!hN?"5px":"0"} ${!hN?"5px":"0"} ${!hP?"5px":"0"}`,left:hP?"0":"2px",right:hN?"0":"2px"};
                     pC=entry.status==="pending"?"pending-pill":entry.status==="rejected"?"rejected-pill":"";
                   }
+                  const canAddHere = isAnyAdmin(userEmail) || (team.find(m=>m.email===userEmail)?.name === member.name);
                   return(
-                    <td key={d} className={`gantt-cell-td${isWeekend?" weekend":""}${isToday?" today-col":""}`}>
-                      {entry&&<div className="vac-pill" title={`${member.name}: ${fmt(entry.startDate,entry.endDate)} — ${entry.status}${entry.note?` · "${entry.note}"`:""}`} onClick={()=>onVacationClick(entry)}><div className={`vac-pill-inner${pC?" "+pC:""}`} style={pS}/></div>}
+                    <td key={d} className={`gantt-cell-td${isWeekend?" weekend":""}${isToday?" today-col":""}${!entry&&canAddHere&&!isWeekend?" gantt-add-cell":""}`}
+                      onClick={()=>{ if(!entry&&canAddHere&&!isWeekend) onAddWithDate(member.name,s); }}>
+                      {entry&&<div className="vac-pill" title={`${member.name}: ${fmt(entry.startDate,entry.endDate)} — ${entry.status}${entry.note?` · "${entry.note}"`:""}`} onClick={e=>{e.stopPropagation();onVacationClick(entry);}}><div className={`vac-pill-inner${pC?" "+pC:""}`} style={pS}/></div>}
                     </td>
                   );
                 })}
@@ -1315,13 +1332,18 @@ function VacationModal({ mode, defaultMember, entry, team, onSave, onClose, user
   const [endDate,   setEndDate]   = useState(entry?.endDate   || "");
   const [status,    setStatus]    = useState(entry?.status    || "pending");
   const [note,      setNote]      = useState(entry?.note      || "");
+  const endDateRef = useRef(null);
+  useEffect(() => {
+    if (entry?.startDate && !entry?.endDate && endDateRef.current) {
+      setTimeout(() => { try { endDateRef.current.showPicker(); } catch(e) { endDateRef.current.focus(); } }, 150);
+    }
+  }, []);
   const wd = startDate && endDate && endDate >= startDate ? wdays(startDate, endDate) : null;
   const maxDate = (() => { const d = new Date(); d.setDate(d.getDate() + 365); return d.toISOString().split('T')[0]; })();
   const isAdding   = mode === 'add';
   const isTiagoNew = member === TIAGO_NAME && isAdding;
   const handleSave = () => {
     if(!member||!startDate||!endDate) return alert("Preenche todos os campos obrigatórios.");
-    if(endDate<startDate) return alert("A data de fim deve ser igual ou posterior à data de início.");
     if(startDate>maxDate) return alert("Não podes marcar férias com mais de 365 dias de antecedência.");
     const finalStatus = isAdding ? (isTiagoNew ? 'approved' : 'pending') : status;
     onSave({id:entry?.id,member,startDate,endDate,status:finalStatus,note:note.trim()});
@@ -1343,7 +1365,7 @@ function VacationModal({ mode, defaultMember, entry, team, onSave, onClose, user
         </div>
         <div className="form-row">
           <div className="form-group"><label className="form-label">Data início *</label><input type="date" className="form-input" value={startDate} max={maxDate} onChange={e=>{setStartDate(e.target.value);if(!endDate||e.target.value>endDate)setEndDate(e.target.value);}}/></div>
-          <div className="form-group"><label className="form-label">Data fim *</label><input type="date" className="form-input" value={endDate} min={startDate} max={maxDate} onChange={e=>setEndDate(e.target.value)}/></div>
+          <div className="form-group"><label className="form-label">Data fim *</label><input ref={endDateRef} type="date" className="form-input" value={endDate} max={maxDate} onChange={e=>{ const v=e.target.value; if(v&&startDate&&v<startDate){setEndDate(startDate);setStartDate(v);}else{setEndDate(v);} }}/></div>
         </div>
         {wd!==null&&<div style={{fontSize:12,color:"#64748b",marginTop:-10,marginBottom:14,paddingLeft:2}}>📅 {wd} dia{wd!==1?"s":""} útei{wd!==1?"s":"l"}</div>}
         {isAdding
