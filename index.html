@@ -79,6 +79,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Ne
 .btn:active { transform: scale(0.97); }
 .btn-primary { background: #4f46e5; color: #fff; box-shadow: 0 1px 4px rgba(79,70,229,0.3); }
 .btn-primary:hover { background: #4338ca; }
+.btn-ghost { background: none; color: #64748b; border: 1.5px solid #e2e8f0; padding: 7px 14px; }
+.btn-ghost:hover { background: #f1f5f9; color: #0f172a; }
+.today-btn { font-size: 13px; }
 .btn-danger-ghost { background: #fef2f2; color: #dc2626; font-size: 12px; padding: 6px 10px; border: none; border-radius: 9px; cursor: pointer; font-weight: 600; transition: all 0.15s; }
 .btn-danger-ghost:hover { background: #fee2e2; }
 .btn-edit-ghost { background: #eff6ff; color: #2563eb; font-size: 12px; padding: 6px 10px; border: none; border-radius: 9px; cursor: pointer; font-weight: 600; transition: all 0.15s; }
@@ -249,6 +252,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Ne
 /* TEAM CARD DROPDOWN */
 .summary-card.team-filter { cursor:pointer; user-select:none; position:relative; flex:0 0 auto; min-width:160px; }
 .summary-card.team-filter:hover { background:#f5f3ff; }
+.summary-card.summary-card-click { cursor:pointer; user-select:none; transition:background .15s,transform .1s; }
+.summary-card.summary-card-click:hover { background:#f8fafc; transform:translateY(-1px); }
 .team-filter-chevron { font-size:22px; color:#64748b; transition:transform .2s; align-self:center; margin-left:6px; flex-shrink:0; line-height:1; }
 .team-filter-chevron.open { transform:rotate(180deg); }
 .team-filter-panel { position:absolute; top:calc(100% + 6px); right:0; background:#fff; border:1px solid #e2e8f0; border-radius:10px; box-shadow:0 8px 28px rgba(0,0,0,0.13); min-width:210px; z-index:500; padding:5px 0; }
@@ -427,13 +432,17 @@ function _sendEmail(toEmail, toName, subject, message) {
 function notifyNewRequest(vacation) {
   if (!EMAILJS_ON) return;
   const { member, startDate, endDate, note } = vacation;
-  const periodo = fmt(startDate, endDate);
-  const dias    = wdays(startDate, endDate);
+  const periodo   = fmt(startDate, endDate);
+  const dias      = wdays(startDate, endDate);
   const notaLinha = note ? `\nNota: ${note}` : '';
-  const msg = `${member} submeteu um pedido de férias que necessita de aprovação.\n\nPeríodo: ${periodo}\nDias úteis: ${dias}${notaLinha}`;
+  const link      = `\n\n🔗 ${window.location.origin}`;
+  const msg     = `${member} submeteu um pedido de férias que necessita de aprovação.\n\nPeríodo: ${periodo}\nDias úteis: ${dias}${notaLinha}${link}`;
   const subject = `🌴 Novo pedido de férias — ${member}`;
-  _sendEmail(SUPER_ADMIN_EMAIL, 'Tiago', subject, msg);
-  if (member !== CATIA_NAME) {
+  if (member === CATIA_NAME) {
+    // Cátia's requests → Tiago only
+    _sendEmail(SUPER_ADMIN_EMAIL, 'Tiago', subject, msg);
+  } else {
+    // Everyone else → Cátia only
     _sendEmail(MINI_ADMIN_EMAIL, 'Cátia', subject, msg);
   }
 }
@@ -444,17 +453,18 @@ function notifyApproval(vacation, approverEmail, team) {
   const dias         = wdays(startDate, endDate);
   const approverRole = getUserRole(approverEmail);
   const memberData   = team.find(m => m.name === member);
+  const link         = `\n\n🔗 ${window.location.origin}`;
   if (approverRole === 'mini-admin') {
     _sendEmail(
       SUPER_ADMIN_EMAIL, 'Tiago',
       `✅ Cátia aprovou — ${member}`,
-      `A Cátia aprovou o pedido de férias de ${member}.\n\nPeríodo: ${periodo}\nDias úteis: ${dias}`
+      `A Cátia aprovou o pedido de férias de ${member}.\n\nPeríodo: ${periodo}\nDias úteis: ${dias}${link}`
     );
   } else if (approverRole === 'super-admin' && member !== CATIA_NAME) {
     _sendEmail(
       MINI_ADMIN_EMAIL, 'Cátia',
       `✅ Tiago aprovou — ${member}`,
-      `O Tiago aprovou o pedido de férias de ${member}.\n\nPeríodo: ${periodo}\nDias úteis: ${dias}`
+      `O Tiago aprovou o pedido de férias de ${member}.\n\nPeríodo: ${periodo}\nDias úteis: ${dias}${link}`
     );
   }
   if (member !== TIAGO_NAME && memberData?.email) {
@@ -462,12 +472,28 @@ function notifyApproval(vacation, approverEmail, team) {
     let subject, msg;
     if (member === CATIA_NAME && approverRole === 'super-admin') {
       subject = `🎉 As tuas férias foram aprovadas! ${periodo}`;
-      msg = `Olá Cátia!\n\nO Tiago aprovou o teu pedido de férias! 🎉\n\nPeríodo: ${periodo}\nDias úteis: ${dias}\n\nBoas férias! 🌴`;
+      msg = `Olá Cátia!\n\nO Tiago aprovou o teu pedido de férias! 🎉\n\nPeríodo: ${periodo}\nDias úteis: ${dias}\n\nBoas férias! 🌴${link}`;
     } else {
       subject = `🎉 Férias aprovadas! ${periodo}`;
-      msg = `Olá ${firstName}!\n\nO teu pedido de férias foi aprovado! 🎉\n\nPeríodo: ${periodo}\nDias úteis: ${dias}\n\nBoas férias! 🌴`;
+      msg = `Olá ${firstName}!\n\nO teu pedido de férias foi aprovado! 🎉\n\nPeríodo: ${periodo}\nDias úteis: ${dias}\n\nBoas férias! 🌴${link}`;
     }
     _sendEmail(memberData.email, firstName, subject, msg);
+  }
+}
+function notifyRejection(vacation, team) {
+  if (!EMAILJS_ON) return;
+  const { member, startDate, endDate } = vacation;
+  const periodo    = fmt(startDate, endDate);
+  const dias       = wdays(startDate, endDate);
+  const memberData = team.find(m => m.name === member);
+  const link       = `\n\n🔗 ${window.location.origin}`;
+  if (member !== TIAGO_NAME && memberData?.email) {
+    const firstName = member.split(' ')[0];
+    _sendEmail(
+      memberData.email, firstName,
+      `❌ Pedido de férias recusado — ${periodo}`,
+      `Olá ${firstName}!\n\nO teu pedido de férias foi recusado.\n\nPeríodo: ${periodo}\nDias úteis: ${dias}\n\nSe tiveres dúvidas, fala com o teu gestor.${link}`
+    );
   }
 }
 /* ─── SETUP SCREEN ─── */
@@ -590,19 +616,21 @@ function QuickApprovalModal({ vacation, team, userEmail, onApprove, onReject, on
   );
 }
 /* ─── HISTORY VIEW ─── */
-function HistoryView({ db, userEmail }) {
+function HistoryView({ db, userEmail, team }) {
   const [entries, setEntries] = React.useState(null);
   const isHiddenAdmin = getUserRole(userEmail) === 'hidden-admin';
+  const hiddenAdminName = (team || []).find(m => m.email === HIDDEN_ADMIN_EMAIL)?.name || '';
   React.useEffect(() => {
     const ref = db.ref('history').orderByChild('ts').limitToLast(300);
     ref.on('value', snap => {
       const val = snap.val();
       if (!val) { setEntries([]); return; }
-      const list = Object.values(val).sort((a, b) => b.ts - a.ts);
+      let list = Object.values(val).sort((a, b) => b.ts - a.ts);
+      if (!isHiddenAdmin && hiddenAdminName) list = list.filter(e => e.actor !== hiddenAdminName);
       setEntries(list);
     });
     return () => ref.off();
-  }, []);
+  }, [isHiddenAdmin, hiddenAdminName]);
   const deleteEntry = id => db.ref(`history/${id}`).remove();
   const fmtDate = ts => new Date(ts).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
   const fmtTime = ts => new Date(ts).toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
@@ -696,6 +724,7 @@ function App() {
   const [month,          setMonth]          = useState(()=>{ const n=new Date(); return n.getFullYear()===2026?n.getMonth():0; });
   const [modal,          setModal]          = useState(null);
   const [approvalModal,  setApprovalModal]  = useState(null);
+  const pendingNotifs = useRef({});
 
   useEffect(() => {
     const u = auth.onAuthStateChanged(user => {
@@ -749,6 +778,9 @@ function App() {
 
   const prevMonth = ()=>{ if(month===0){setYear(y=>y-1);setMonth(11);}else setMonth(m=>m-1); };
   const nextMonth = ()=>{ if(month===11){setYear(y=>y+1);setMonth(0);}else setMonth(m=>m+1); };
+  const prevYear  = () => setYear(y => y - 1);
+  const nextYear  = () => setYear(y => y + 1);
+  const goToday   = () => { const n = new Date(); setYear(n.getFullYear()); setMonth(n.getMonth()); };
   const logAction = (action, target) => {
     const actor = team?.find(m => m.email === authUser?.email)?.name || authUser?.displayName || authUser?.email || 'Unknown';
     const id = uid();
@@ -763,13 +795,20 @@ function App() {
     } else {
       const v = {...d, id: uid()};
       db.ref(`vacations/${v.id}`).set(v);
-      if (v.member !== TIAGO_NAME) notifyNewRequest(v);
+      if (v.member !== TIAGO_NAME) {
+        const tId = setTimeout(() => {
+          notifyNewRequest(v);
+          delete pendingNotifs.current[v.id];
+        }, 60000);
+        pendingNotifs.current[v.id] = tId;
+      }
       logAction(`added a vacation for ${v.member} (${fmt(v.startDate, v.endDate)})`, v.member);
     }
     setModal(null);
   };
   const deleteVacation = (id) => {
     if (window.confirm("Eliminar este registo de férias?")) {
+      if (pendingNotifs.current[id]) { clearTimeout(pendingNotifs.current[id]); delete pendingNotifs.current[id]; }
       const v = (vacations||[]).find(x => x.id === id);
       db.ref(`vacations/${id}`).remove();
       if (v) logAction(`deleted ${v.member}'s vacation (${fmt(v.startDate, v.endDate)})`, v.member);
@@ -788,6 +827,7 @@ function App() {
     const config = getApprovalModalConfig(authUser.email, vacation, team);
     if (!config.canReject) return;
     db.ref(`vacations/${vacation.id}/status`).set('rejected');
+    notifyRejection(vacation, team);
     logAction(`rejected ${vacation.member}'s vacation (${fmt(vacation.startDate, vacation.endDate)})`, vacation.member);
     setApprovalModal(null);
   };
@@ -797,6 +837,7 @@ function App() {
     const newStatus = NEXT_STATUS[v.status];
     db.ref(`vacations/${id}/status`).set(newStatus);
     if (newStatus === 'approved') notifyApproval(v, authUser.email, team);
+    if (newStatus === 'rejected') notifyRejection(v, team);
     logAction(`changed ${v.member}'s vacation status to ${newStatus} (${fmt(v.startDate, v.endDate)})`, v.member);
   };
   const addMember = (name,color,email) => {
@@ -832,7 +873,7 @@ function App() {
       <nav className="nav">
         <div className="nav-logo">🌴 <span className="accent">Vacation</span> Tracker<span className={`conn-dot ${online?"online":"offline"}`} title={online?"Sincronizado":"A reconectar…"} style={{marginLeft:4}}/></div>
         <div className="nav-divider"/>
-        <div className={`nav-tab ${view==="team"?"active":""}`} onClick={()=>setView("team")}>
+        <div className={`nav-tab ${["team","pending-list","approved-list","out-today"].includes(view)?"active":""}`} onClick={()=>setView("team")}>
           <span>📅</span> Calendar {pendingCount>0 && <span className="pending-badge">{pendingCount}</span>}
         </div>
         {isAnyAdmin(authUser.email) && <div className={`nav-tab manage-tab ${view==="manage"?"active":""}`} onClick={()=>setView("manage")}>⚙️ Members</div>}
@@ -840,10 +881,13 @@ function App() {
         <AuthUserPill user={authUser}/>
       </nav>
       <div className="main">
-        {view==="team"   && <TeamView vacations={vacations} team={team} year={year} month={month} onPrev={prevMonth} onNext={nextMonth} onPersonClick={n=>setView(n)} onAdd={()=>openAdd(null)} userEmail={authUser.email} onCycleStatus={cycleStatus} onVacationClick={handleVacationClick} onSetMonth={setMonth}/>}
-        {view==="manage" && <ManageTeamView team={team} vacations={vacations} onAdd={addMember} onRemove={removeMember} onColorChange={updateMemberColor} onEmailChange={updateMemberEmail} currentUserEmail={authUser.email}/>}
-        {view==="history" && (isAnyAdmin(authUser.email) ? <HistoryView db={db} userEmail={authUser.email}/> : (setView("team"),null))}
-        {view!=="team"&&view!=="manage"&&view!=="history"&&currentMember && <PersonView member={currentMember} vacations={vacations.filter(v=>v.member===currentMember.name)} onAdd={()=>openAdd(currentMember.name)} onEdit={openEdit} onDelete={deleteVacation} onCycleStatus={cycleStatus} userEmail={authUser.email} onVacationClick={handleVacationClick}/>}
+        {view==="team"          && <TeamView vacations={vacations} team={team} year={year} month={month} onPrev={prevMonth} onNext={nextMonth} onPersonClick={n=>setView(n)} onAdd={()=>openAdd(null)} userEmail={authUser.email} onCycleStatus={cycleStatus} onVacationClick={handleVacationClick} onSetMonth={setMonth} onPrevYear={prevYear} onNextYear={nextYear} onGoToday={goToday} onFilterView={setView}/>}
+        {view==="pending-list"  && <FilteredVacationsView title="Férias Pendentes" icon="⏳" vacations={vacations.filter(v=>v.status==='pending')} team={team} onDelete={deleteVacation} onCycleStatus={cycleStatus} onVacationClick={handleVacationClick} userEmail={authUser.email} onBack={()=>setView("team")}/>}
+        {view==="approved-list" && <FilteredVacationsView title="Férias Aprovadas" icon="✅" vacations={vacations.filter(v=>v.status==='approved')} team={team} onDelete={deleteVacation} onCycleStatus={cycleStatus} onVacationClick={handleVacationClick} userEmail={authUser.email} onBack={()=>setView("team")}/>}
+        {view==="out-today"     && <FilteredVacationsView title="Ausentes Hoje" icon="👤" vacations={vacations.filter(v=>v.status!=='rejected'&&expand(v.startDate,v.endDate).includes(today()))} team={team} onDelete={deleteVacation} onCycleStatus={cycleStatus} onVacationClick={handleVacationClick} userEmail={authUser.email} onBack={()=>setView("team")}/>}
+        {view==="manage"        && <ManageTeamView team={team} vacations={vacations} onAdd={addMember} onRemove={removeMember} onColorChange={updateMemberColor} onEmailChange={updateMemberEmail} currentUserEmail={authUser.email}/>}
+        {view==="history"       && (isAnyAdmin(authUser.email) ? <HistoryView db={db} userEmail={authUser.email} team={team}/> : (setView("team"),null))}
+        {!["team","pending-list","approved-list","out-today","manage","history"].includes(view)&&currentMember && <PersonView member={currentMember} vacations={vacations.filter(v=>v.member===currentMember.name)} onAdd={()=>openAdd(currentMember.name)} onEdit={openEdit} onDelete={deleteVacation} onCycleStatus={cycleStatus} userEmail={authUser.email} onVacationClick={handleVacationClick}/>}
       </div>
       {modal && <VacationModal mode={modal.mode} defaultMember={modal.defaultMember} entry={modal.entry} team={team} userEmail={modal.userEmail} onSave={saveVacation} onClose={()=>setModal(null)}/>}
       {approvalModal && <QuickApprovalModal vacation={approvalModal} team={team} userEmail={authUser.email} onApprove={approveVacation} onReject={rejectVacation} onDelete={deleteVacation} onClose={()=>setApprovalModal(null)}/>}
@@ -1029,7 +1073,7 @@ function YearView({ vacations, team, year, onMonthClick }) {
     </div>
   );
 }
-function TeamView({ vacations, team, year, month, onPrev, onNext, onPersonClick, onAdd, userEmail, onCycleStatus, onVacationClick, onSetMonth }) {
+function TeamView({ vacations, team, year, month, onPrev, onNext, onPersonClick, onAdd, userEmail, onCycleStatus, onVacationClick, onSetMonth, onPrevYear, onNextYear, onGoToday, onFilterView }) {
   const [yearMode, setYearMode] = React.useState(false);
   const goToMonth = (mi) => { onSetMonth(mi); setYearMode(false); };
 
@@ -1088,10 +1132,9 @@ function TeamView({ vacations, team, year, month, onPrev, onNext, onPersonClick,
             </div>
           )}
         </div>
-        <div className="summary-card"><div className="summary-icon">🏖️</div><div><div className="summary-val" style={{color:"#4f46e5"}}>{vacations.length}</div><div className="summary-lbl">Total</div></div></div>
-        <div className="summary-card"><div className="summary-icon">✅</div><div><div className="summary-val" style={{color:"#16a34a"}}>{totAppr}</div><div className="summary-lbl">Dias aprovados</div></div></div>
-        <div className="summary-card"><div className="summary-icon">⏳</div><div><div className="summary-val" style={{color:"#d97706"}}>{totPend}</div><div className="summary-lbl">Dias pendentes</div></div></div>
-        <div className="summary-card"><div className="summary-icon">👤</div><div><div className="summary-val" style={{color:offToday.length>0?"#dc2626":"#94a3b8"}}>{offToday.length}</div><div className="summary-lbl">Ausentes hoje</div></div></div>
+        <div className="summary-card summary-card-click" onClick={()=>onFilterView("pending-list")}><div className="summary-icon">⏳</div><div><div className="summary-val" style={{color:"#d97706"}}>{totPend}</div><div className="summary-lbl">Dias pendentes</div></div></div>
+        <div className="summary-card summary-card-click" onClick={()=>onFilterView("approved-list")}><div className="summary-icon">✅</div><div><div className="summary-val" style={{color:"#16a34a"}}>{totAppr}</div><div className="summary-lbl">Dias aprovados</div></div></div>
+        <div className="summary-card summary-card-click" onClick={()=>onFilterView("out-today")}><div className="summary-icon">👤</div><div><div className="summary-val" style={{color:offToday.length>0?"#dc2626":"#94a3b8"}}>{offToday.length}</div><div className="summary-lbl">Ausentes hoje</div></div></div>
       </div>
       <div className="page-header">
         <div><div className="page-title">Visão Geral da Equipa</div><div className="page-subtitle">{offToday.length>0?`Hoje ausente${offToday.length!==1?"s":""}: ${offToday.map(m=>m.name.split(" ")[0]).join(", ")}`:"Toda a equipa presente hoje"}</div></div>
@@ -1100,7 +1143,9 @@ function TeamView({ vacations, team, year, month, onPrev, onNext, onPersonClick,
             <button className={`view-toggle-btn${!yearMode?" active":""}`} onClick={()=>setYearMode(false)}>📅 Month</button>
             <button className={`view-toggle-btn${yearMode?" active":""}`} onClick={()=>setYearMode(true)}>🗓 Year</button>
           </div>
+          <button className="btn btn-ghost today-btn" onClick={onGoToday}>Today</button>
           {!yearMode && <div className="month-nav"><button className="month-nav-btn" onClick={onPrev}>◀</button><span className="month-label">{MONTHS_EN[month]} {year}</span><button className="month-nav-btn" onClick={onNext}>▶</button></div>}
+          {yearMode && <div className="month-nav"><button className="month-nav-btn" onClick={onPrevYear}>◀</button><span className="month-label">{year}</span><button className="month-nav-btn" onClick={onNextYear}>▶</button></div>}
           <button className="btn btn-primary" onClick={onAdd}>＋ Adicionar Férias</button>
         </div>
       </div>
@@ -1211,6 +1256,55 @@ function PersonView({ member, vacations, onAdd, onEdit, onDelete, onCycleStatus,
     </div>
   );
 }
+/* ─── FILTERED VACATIONS VIEW ─── */
+function FilteredVacationsView({ title, icon, vacations, team, onDelete, onCycleStatus, onVacationClick, userEmail, onBack }) {
+  const sorted = [...vacations].sort((a, b) => a.startDate.localeCompare(b.startDate));
+  return (
+    <div>
+      <div className="person-header">
+        <button className="btn btn-ghost" onClick={onBack} style={{marginRight:12,flexShrink:0}}>← Voltar</button>
+        <div className="summary-icon" style={{fontSize:28}}>{icon}</div>
+        <div style={{flex:1}}>
+          <div className="person-name">{title}</div>
+          <div style={{color:'#64748b',fontSize:13,marginTop:2}}>{vacations.length} registo{vacations.length!==1?'s':''}</div>
+        </div>
+      </div>
+      {sorted.length === 0 ? (
+        <div className="empty"><div className="empty-icon">{icon}</div><div className="empty-title">Nenhum registo encontrado</div></div>
+      ) : (
+        <div className="vac-list">
+          {sorted.map(v => {
+            const member = team.find(m => m.name === v.member);
+            const wd = wdays(v.startDate, v.endDate);
+            const cd = expand(v.startDate, v.endDate).length;
+            const userCanApprove = canApprove(userEmail, v.member);
+            return (
+              <div key={v.id} className={`vac-card ${v.status}`} onClick={() => onVacationClick(v)}>
+                <div className="vac-card-dates">
+                  <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:4}}>
+                    <span style={{background:member?.color||'#94a3b8',width:10,height:10,borderRadius:'50%',display:'inline-block',flexShrink:0}}/>
+                    <span style={{fontWeight:700,color:'#0f172a',fontSize:14}}>{v.member}</span>
+                  </div>
+                  <div className="vac-date-range">{fmt(v.startDate, v.endDate)}</div>
+                  <div className="vac-meta">{wd} dia{wd!==1?"s":""} útei{wd!==1?"s":"l"}{cd!==wd?` (${cd} dias corridos)`:""}</div>
+                  {v.note && <div className="vac-note">💬 {v.note}</div>}
+                </div>
+                <div className="vac-card-actions">
+                  <span className={`status-badge ${v.status}${userCanApprove?" clickable":""}`}
+                    onClick={e=>{e.stopPropagation();if(userCanApprove)onCycleStatus(v.id);}}
+                    title={userCanApprove?"Clica para alterar: Pendente → Aprovado → Rejeitado":""}>
+                    {v.status==="approved"?"✅ Aprovado":v.status==="pending"?"⏳ Pendente":"❌ Rejeitado"}
+                  </span>
+                  <button className="btn-danger-ghost" onClick={e=>{e.stopPropagation();onDelete(v.id);}}>🗑️</button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
 /* ─── VACATION MODAL ─── */
 function VacationModal({ mode, defaultMember, entry, team, onSave, onClose, userEmail }) {
   const adminUser  = isAnyAdmin(userEmail);
@@ -1222,11 +1316,13 @@ function VacationModal({ mode, defaultMember, entry, team, onSave, onClose, user
   const [status,    setStatus]    = useState(entry?.status    || "pending");
   const [note,      setNote]      = useState(entry?.note      || "");
   const wd = startDate && endDate && endDate >= startDate ? wdays(startDate, endDate) : null;
+  const maxDate = (() => { const d = new Date(); d.setDate(d.getDate() + 365); return d.toISOString().split('T')[0]; })();
   const isAdding   = mode === 'add';
   const isTiagoNew = member === TIAGO_NAME && isAdding;
   const handleSave = () => {
     if(!member||!startDate||!endDate) return alert("Preenche todos os campos obrigatórios.");
     if(endDate<startDate) return alert("A data de fim deve ser igual ou posterior à data de início.");
+    if(startDate>maxDate) return alert("Não podes marcar férias com mais de 365 dias de antecedência.");
     const finalStatus = isAdding ? (isTiagoNew ? 'approved' : 'pending') : status;
     onSave({id:entry?.id,member,startDate,endDate,status:finalStatus,note:note.trim()});
   };
@@ -1246,8 +1342,8 @@ function VacationModal({ mode, defaultMember, entry, team, onSave, onClose, user
           }
         </div>
         <div className="form-row">
-          <div className="form-group"><label className="form-label">Data início *</label><input type="date" className="form-input" value={startDate} onChange={e=>{setStartDate(e.target.value);if(!endDate||e.target.value>endDate)setEndDate(e.target.value);}}/></div>
-          <div className="form-group"><label className="form-label">Data fim *</label><input type="date" className="form-input" value={endDate} min={startDate} onChange={e=>setEndDate(e.target.value)}/></div>
+          <div className="form-group"><label className="form-label">Data início *</label><input type="date" className="form-input" value={startDate} max={maxDate} onChange={e=>{setStartDate(e.target.value);if(!endDate||e.target.value>endDate)setEndDate(e.target.value);}}/></div>
+          <div className="form-group"><label className="form-label">Data fim *</label><input type="date" className="form-input" value={endDate} min={startDate} max={maxDate} onChange={e=>setEndDate(e.target.value)}/></div>
         </div>
         {wd!==null&&<div style={{fontSize:12,color:"#64748b",marginTop:-10,marginBottom:14,paddingLeft:2}}>📅 {wd} dia{wd!==1?"s":""} útei{wd!==1?"s":"l"}</div>}
         {isAdding
