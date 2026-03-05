@@ -187,8 +187,28 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Ne
 .form-label { display: block; font-size: 13px; font-weight: 700; color: #374151; margin-bottom: 7px; }
 .form-input { width: 100%; padding: 10px 13px; border: 1.5px solid #e2e8f0; border-radius: 9px; font-size: 14px; outline: none; transition: border-color 0.15s; color: #0f172a; background: #fff; }
 .form-input:focus { border-color: #4f46e5; box-shadow: 0 0 0 3px rgba(79,70,229,0.1); }
-.form-input.date-filled { border-color: #4f46e5; background: #f5f3ff; }
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+/* ── CUSTOM DATE INPUT ── */
+.date-input-wrap { position: relative; }
+.date-display { width:100%; padding:10px 13px; border:1.5px solid #e2e8f0; border-radius:9px; font-size:14px; color:#0f172a; background:#fff; cursor:pointer; user-select:none; display:flex; align-items:center; min-height:42px; transition:border-color 0.15s,background 0.15s; }
+.date-display:hover { border-color:#a5b4fc; }
+.date-display.dp-open { border-color:#4f46e5; box-shadow:0 0 0 3px rgba(79,70,229,0.12); }
+.date-display.dp-filled { border-color:#4f46e5; background:#f5f3ff; }
+.date-placeholder { color:#94a3b8; }
+.cal-popup { position:absolute; top:calc(100% + 6px); left:0; background:#fff; border-radius:12px; box-shadow:0 8px 32px rgba(0,0,0,0.16); padding:14px; z-index:600; width:252px; }
+.cal-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+.cal-header-label { font-size:13px; font-weight:700; color:#0f172a; }
+.cal-nav-btn { background:none; border:none; cursor:pointer; color:#64748b; padding:4px 8px; border-radius:6px; font-size:11px; line-height:1; }
+.cal-nav-btn:hover { background:#f1f5f9; color:#0f172a; }
+.cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:2px; }
+.cal-dow { font-size:10px; font-weight:700; color:#94a3b8; text-align:center; padding:3px 0 6px; }
+.cal-day { aspect-ratio:1; display:flex; align-items:center; justify-content:center; font-size:12px; border-radius:50%; cursor:pointer; color:#374151; transition:background 0.1s; position:relative; font-weight:500; }
+.cal-day:hover:not(.cal-we):not(.cal-sel):not(.cal-paired) { background:#ede9fe; color:#4f46e5; }
+.cal-day.cal-we { color:#d1d5db; cursor:default; }
+.cal-day.cal-sel { background:#4f46e5; color:#fff; font-weight:700; }
+.cal-day.cal-paired { background:#c7d2fe; color:#3730a3; font-weight:700; }
+.cal-day.cal-in-range:not(.cal-sel):not(.cal-paired) { background:#ede9fe; border-radius:0; color:#4338ca; }
+.cal-day.cal-today:not(.cal-sel):not(.cal-paired)::after { content:''; position:absolute; bottom:2px; left:50%; transform:translateX(-50%); width:3px; height:3px; border-radius:50%; background:#4f46e5; }
 .modal-actions { display: flex; gap: 10px; margin-top: 26px; justify-content: flex-end; }
 .btn-cancel { padding: 10px 20px; border-radius: 9px; border: 1.5px solid #e2e8f0; background: #fff; cursor: pointer; font-size: 14px; font-weight: 600; color: #64748b; transition: all 0.15s; }
 .btn-cancel:hover { background: #f8fafc; }
@@ -1299,23 +1319,92 @@ function FilteredVacationsView({ title, icon, vacations, team, onDelete, onCycle
     </div>
   );
 }
+/* ─── CALENDAR POPUP ─── */
+const MONTHS_PT = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const DOWS_PT   = ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
+function CalendarPopup({ year, month, selected, paired, onSelect, onPrev, onNext }) {
+  const tod = today();
+  const firstDow = (new Date(year, month, 1).getDay() + 6) % 7;
+  const days = dim(year, month);
+  const lo = [selected, paired].filter(Boolean).sort()[0];
+  const hi = [selected, paired].filter(Boolean).sort()[1];
+  const cells = [];
+  for (let i = 0; i < firstDow; i++) cells.push(<div key={`e${i}`}/>);
+  for (let d = 1; d <= days; d++) {
+    const iso = ds(year, month, d);
+    const dow = (new Date(year, month, d).getDay() + 6) % 7;
+    const isWe = dow >= 5;
+    cells.push(
+      <div key={d}
+        className={['cal-day', isWe?'cal-we':'', iso===selected?'cal-sel':'', iso===paired?'cal-paired':'', (!isWe&&lo&&hi&&iso>lo&&iso<hi)?'cal-in-range':'', iso===tod?'cal-today':''].join(' ').trim()}
+        onClick={() => { if (!isWe) onSelect(iso); }}>
+        {d}
+      </div>
+    );
+  }
+  return (
+    <div className="cal-popup">
+      <div className="cal-header">
+        <button className="cal-nav-btn" onClick={onPrev}>◀</button>
+        <span className="cal-header-label">{MONTHS_PT[month]} {year}</span>
+        <button className="cal-nav-btn" onClick={onNext}>▶</button>
+      </div>
+      <div className="cal-grid">
+        {DOWS_PT.map(d => <div key={d} className="cal-dow">{d}</div>)}
+        {cells}
+      </div>
+    </div>
+  );
+}
+/* ─── DATE INPUT ─── */
+function DateInput({ label, value, otherValue, onPick, autoOpen }) {
+  const isoToVM = iso => {
+    if (iso) { const p = iso.split('-').map(Number); return { year: p[0], month: p[1]-1 }; }
+    const n = new Date(); return { year: n.getFullYear(), month: n.getMonth() };
+  };
+  const [open, setOpen]   = useState(false);
+  const [vm, setVm]       = useState(() => isoToVM(value || otherValue));
+  const wrapRef           = useRef(null);
+  const didAutoOpen       = useRef(false);
+  useEffect(() => {
+    if (autoOpen && !didAutoOpen.current) { didAutoOpen.current = true; setOpen(true); }
+  }, [autoOpen]);
+  useEffect(() => { if (value) setVm(isoToVM(value)); }, [value]);
+  useEffect(() => {
+    if (!open) return;
+    const h = e => { if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', h);
+    return () => document.removeEventListener('mousedown', h);
+  }, [open]);
+  const nav = dir => setVm(v => { const d = new Date(v.year, v.month + dir, 1); return { year: d.getFullYear(), month: d.getMonth() }; });
+  const display = value ? value.split('-').reverse().join('/') : null;
+  return (
+    <div className="date-input-wrap" ref={wrapRef}>
+      <div className={['date-display', open?'dp-open':'', value?'dp-filled':''].join(' ').trim()} onClick={() => setOpen(o => !o)}>
+        {display || <span className="date-placeholder">DD/MM/AAAA</span>}
+      </div>
+      {open && <CalendarPopup year={vm.year} month={vm.month} selected={value} paired={otherValue}
+        onSelect={iso => { onPick(iso); setOpen(false); }}
+        onPrev={() => nav(-1)} onNext={() => nav(+1)}/>}
+    </div>
+  );
+}
 /* ─── VACATION MODAL ─── */
 function VacationModal({ mode, defaultMember, entry, team, onSave, onClose, userEmail }) {
   const adminUser  = isAnyAdmin(userEmail);
   const myName     = team.find(m => m.email === userEmail)?.name || defaultMember || (team[0]?.name||"");
   const initMember = mode==='add' && !adminUser ? myName : (entry?.member || defaultMember || myName);
   const [member,    setMember]    = useState(initMember);
-  const [{ startDate, endDate }, setDates] = useState({ startDate: entry?.startDate || "", endDate: entry?.endDate || "" });
-  const setStartDate = v => setDates(prev => v && prev.endDate && v > prev.endDate ? { startDate: prev.endDate, endDate: v } : { ...prev, startDate: v });
-  const setEndDate   = v => setDates(prev => v && prev.startDate && v < prev.startDate ? { startDate: v, endDate: prev.startDate } : { ...prev, endDate: v });
+  const [startDate, setStartDate] = useState(entry?.startDate || "");
+  const [endDate,   setEndDate]   = useState(entry?.endDate   || "");
   const [status,    setStatus]    = useState(entry?.status    || "pending");
   const [note,      setNote]      = useState(entry?.note      || "");
-  const endDateRef = useRef(null);
-  useEffect(() => {
-    if (entry?.startDate && !entry?.endDate && endDateRef.current) {
-      setTimeout(() => { try { endDateRef.current.showPicker(); } catch(e) { endDateRef.current.focus(); } }, 150);
-    }
-  }, []);
+  const handlePick = (slot, iso) => {
+    const a = slot === 'start' ? iso : startDate;
+    const b = slot === 'end'   ? iso : endDate;
+    if (a && b) { setStartDate(a <= b ? a : b); setEndDate(a <= b ? b : a); }
+    else { if (slot === 'start') setStartDate(iso); else setEndDate(iso); }
+  };
   const wd = startDate && endDate && endDate >= startDate ? wdays(startDate, endDate) : null;
   const maxDate = (() => { const d = new Date(); d.setDate(d.getDate() + 365); return d.toISOString().split('T')[0]; })();
   const isAdding   = mode === 'add';
@@ -1342,8 +1431,8 @@ function VacationModal({ mode, defaultMember, entry, team, onSave, onClose, user
           }
         </div>
         <div className="form-row">
-          <div className="form-group"><label className="form-label">Data início *</label><input type="date" className={`form-input${startDate?" date-filled":""}`} value={startDate} max={maxDate} onChange={e=>setStartDate(e.target.value)}/></div>
-          <div className="form-group"><label className="form-label">Data fim *</label><input ref={endDateRef} type="date" className={`form-input${endDate?" date-filled":""}`} value={endDate} max={maxDate} onChange={e=>setEndDate(e.target.value)}/></div>
+          <div className="form-group"><DateInput label="Data início *" value={startDate} otherValue={endDate} onPick={iso=>handlePick('start',iso)}/></div>
+          <div className="form-group"><DateInput label="Data fim *" value={endDate} otherValue={startDate} onPick={iso=>handlePick('end',iso)} autoOpen={!!(entry?.startDate && !entry?.endDate)}/></div>
         </div>
         {wd!==null&&<div style={{fontSize:12,color:"#64748b",marginTop:-10,marginBottom:14,paddingLeft:2}}>📅 {wd} dia{wd!==1?"s":""} útei{wd!==1?"s":"l"}</div>}
         {isAdding
