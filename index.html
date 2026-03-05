@@ -387,7 +387,7 @@ function getApprovalModalConfig(userEmail, vacation, team) {
       return { showApprove: false, showReject: false, showDelete: false, canApprove: false, canReject: false, canDelete: false };
     }
     if (isOwnEntry) {
-      return { showApprove: false, showReject: false, showDelete: true, canApprove: false, canReject: false, canDelete: true };
+      return { showApprove: true, showReject: true, showDelete: true, canApprove: true, canReject: true, canDelete: true };
     }
     return { showApprove: true, showReject: true, showDelete: false, canApprove: true, canReject: true, canDelete: false };
   }
@@ -439,52 +439,31 @@ function _sendEmail(toEmail, toName, subject, message) {
 function notifyNewRequest(vacation) {
   if (!EMAILJS_ON) return;
   const { member, startDate, endDate, note } = vacation;
+  // Only notify Cátia for regular (non-admin) member requests
+  if (member === TIAGO_NAME || member === CATIA_NAME) return;
   const periodo   = fmt(startDate, endDate);
   const dias      = wdays(startDate, endDate);
   const notaLinha = note ? `\nNota: ${note}` : '';
   const link      = `\n\n🔗 ${window.location.origin}`;
   const msg     = `${member} submeteu um pedido de férias que necessita de aprovação.\n\nPeríodo: ${periodo}\nDias úteis: ${dias}${notaLinha}${link}`;
   const subject = `🌴 Novo pedido de férias — ${member}`;
-  if (member === CATIA_NAME) {
-    // Cátia's requests → Tiago only
-    _sendEmail(SUPER_ADMIN_EMAIL, 'Tiago', subject, msg);
-  } else {
-    // Everyone else → Cátia only
-    _sendEmail(MINI_ADMIN_EMAIL, 'Cátia', subject, msg);
-  }
+  _sendEmail(MINI_ADMIN_EMAIL, 'Cátia', subject, msg);
 }
 function notifyApproval(vacation, approverEmail, team) {
   if (!EMAILJS_ON) return;
   const { member, startDate, endDate } = vacation;
-  const periodo      = fmt(startDate, endDate);
-  const dias         = wdays(startDate, endDate);
-  const approverRole = getUserRole(approverEmail);
-  const memberData   = team.find(m => m.name === member);
-  const link         = `\n\n🔗 ${window.location.origin}`;
-  if (approverRole === 'mini-admin') {
-    _sendEmail(
-      SUPER_ADMIN_EMAIL, 'Tiago',
-      `✅ Cátia aprovou — ${member}`,
-      `A Cátia aprovou o pedido de férias de ${member}.\n\nPeríodo: ${periodo}\nDias úteis: ${dias}${link}`
-    );
-  } else if (approverRole === 'super-admin' && member !== CATIA_NAME) {
-    _sendEmail(
-      MINI_ADMIN_EMAIL, 'Cátia',
-      `✅ Tiago aprovou — ${member}`,
-      `O Tiago aprovou o pedido de férias de ${member}.\n\nPeríodo: ${periodo}\nDias úteis: ${dias}${link}`
-    );
-  }
-  if (member !== TIAGO_NAME && memberData?.email) {
+  const periodo    = fmt(startDate, endDate);
+  const dias       = wdays(startDate, endDate);
+  const memberData = team.find(m => m.name === member);
+  const link       = `\n\n🔗 ${window.location.origin}`;
+  // Notify the member — skip Tiago (auto-approved, no email needed), skip self-approval
+  if (member !== TIAGO_NAME && memberData?.email && approverEmail !== memberData.email) {
     const firstName = member.split(' ')[0];
-    let subject, msg;
-    if (member === CATIA_NAME && approverRole === 'super-admin') {
-      subject = `🎉 As tuas férias foram aprovadas! ${periodo}`;
-      msg = `Olá Cátia!\n\nO Tiago aprovou o teu pedido de férias! 🎉\n\nPeríodo: ${periodo}\nDias úteis: ${dias}\n\nBoas férias! 🌴${link}`;
-    } else {
-      subject = `🎉 Férias aprovadas! ${periodo}`;
-      msg = `Olá ${firstName}!\n\nO teu pedido de férias foi aprovado! 🎉\n\nPeríodo: ${periodo}\nDias úteis: ${dias}\n\nBoas férias! 🌴${link}`;
-    }
-    _sendEmail(memberData.email, firstName, subject, msg);
+    _sendEmail(
+      memberData.email, firstName,
+      `🎉 Férias aprovadas! ${periodo}`,
+      `Olá ${firstName}!\n\nO teu pedido de férias foi aprovado! 🎉\n\nPeríodo: ${periodo}\nDias úteis: ${dias}\n\nBoas férias! 🌴${link}`
+    );
   }
 }
 function notifyRejection(vacation, team) {
@@ -802,7 +781,7 @@ function App() {
     } else {
       const v = {...d, id: uid()};
       db.ref(`vacations/${v.id}`).set(v);
-      if (v.member !== TIAGO_NAME) {
+      if (v.member !== TIAGO_NAME && v.member !== CATIA_NAME) {
         const tId = setTimeout(() => {
           notifyNewRequest(v);
           delete pendingNotifs.current[v.id];
@@ -881,7 +860,7 @@ function App() {
         <div className="nav-logo">🌴 <span className="accent">Vacation</span> Tracker<span className={`conn-dot ${online?"online":"offline"}`} title={online?"Sincronizado":"A reconectar…"} style={{marginLeft:4}}/></div>
         <div className="nav-divider"/>
         <div className={`nav-tab ${["team","pending-list","approved-list","out-today"].includes(view)?"active":""}`} onClick={()=>setView("team")}>
-          <span>📅</span> Calendar {pendingCount>0 && <span className="pending-badge">{pendingCount}</span>}
+          <span>📅</span> Calendar
         </div>
         {isAnyAdmin(authUser.email) && <div className={`nav-tab manage-tab ${view==="manage"?"active":""}`} onClick={()=>setView("manage")}>⚙️ Members</div>}
         {isAnyAdmin(authUser.email) && <div className={`nav-tab history-tab ${view==="history"?"active":""}`} onClick={()=>setView("history")}>📋 History</div>}
@@ -1232,7 +1211,7 @@ function PersonView({ member, vacations, onAdd, onEdit, onDelete, onCycleStatus,
           <div className="person-name">{member.name}</div>
           {member.email&&<div style={{fontSize:12,color:"#94a3b8",marginTop:3}}>✉️ {member.email}</div>}
           {member.name===TIAGO_NAME&&<div style={{fontSize:12,color:"#16a34a",fontWeight:600,marginTop:3}}>⭐ Super Admin — férias aprovadas automaticamente</div>}
-          {member.name===CATIA_NAME&&<div style={{fontSize:12,color:"#7c3aed",fontWeight:600,marginTop:3}}>🔑 Admin — aprova toda a equipa exceto Tiago</div>}
+          {member.name===CATIA_NAME&&<div style={{fontSize:12,color:"#7c3aed",fontWeight:600,marginTop:3}}>🔑 Admin — aprova toda a equipa e a si própria</div>}
           <div style={{display:"flex",gap:8,flexWrap:"wrap",marginTop:8}}>
             <span className="person-stat-pill stat-total">📅 {stats.tot} dia{stats.tot!==1?"s":""} total</span>
             {stats.appr>0&&<span className="person-stat-pill stat-approved">✅ {stats.appr} aprovado{stats.appr!==1?"s":""}</span>}
@@ -1361,7 +1340,7 @@ function VacationModal({ mode, defaultMember, entry, team, onSave, onClose, user
           }
         </div>
         <div className="form-row">
-          <div className="form-group"><label className="form-label">Data início *</label><input type="date" className="form-input" value={startDate} max={maxDate} onChange={e=>{setStartDate(e.target.value);if(endDate&&e.target.value>endDate)setEndDate(e.target.value);}}/></div>
+          <div className="form-group"><label className="form-label">Data início *</label><input type="date" className="form-input" value={startDate} max={maxDate} onChange={e=>{ const v=e.target.value; if(v&&endDate&&v>endDate){setStartDate(endDate);setEndDate(v);}else{setStartDate(v);} }}/></div>
           <div className="form-group"><label className="form-label">Data fim *</label><input ref={endDateRef} type="date" className="form-input" value={endDate} max={maxDate} onChange={e=>{ const v=e.target.value; if(v&&startDate&&v<startDate){setEndDate(startDate);setStartDate(v);}else{setEndDate(v);} }}/></div>
         </div>
         {wd!==null&&<div style={{fontSize:12,color:"#64748b",marginTop:-10,marginBottom:14,paddingLeft:2}}>📅 {wd} dia{wd!==1?"s":""} útei{wd!==1?"s":"l"}</div>}
