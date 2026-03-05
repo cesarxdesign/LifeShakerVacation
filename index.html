@@ -96,7 +96,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Ne
 .gantt-cell-td { min-width: 32px; width: 32px; height: 44px; border-right: 1px solid #f1f5f9; position: relative; vertical-align: middle; }
 .gantt-cell-td.weekend { background: #f9fafb; }
 .gantt-cell-td.today-col { background: #f9f8ff; }
-.vac-pill { position: absolute; top: 8px; bottom: 8px; left: 0; right: 0; }
+.vac-pill { position: absolute; top: 8px; bottom: 8px; left: 0; right: 0; cursor: pointer; }
 .vac-pill-inner { position: absolute; top: 0; bottom: 0; left: 0; right: 0; }
 .vac-pill-inner.pending-pill  { opacity: 0.75; }
 .vac-pill-inner.rejected-pill { opacity: 0.6; }
@@ -118,7 +118,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Ne
 .stat-rejected  { background: #fef2f2; color: #dc2626; }
 .stat-total     { background: #f1f5f9; color: #475569; }
 .vac-list { display: flex; flex-direction: column; gap: 10px; }
-.vac-card { background: #fff; border-radius: 12px; padding: 16px 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); display: flex; align-items: center; gap: 16px; border-left: 4px solid #e2e8f0; transition: box-shadow 0.15s; }
+.vac-card { background: #fff; border-radius: 12px; padding: 16px 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); display: flex; align-items: center; gap: 16px; border-left: 4px solid #e2e8f0; transition: box-shadow 0.15s; cursor: pointer; }
 .vac-card:hover { box-shadow: 0 2px 10px rgba(0,0,0,0.09); }
 .vac-card.approved { border-left-color: #16a34a; }
 .vac-card.pending  { border-left-color: #f59e0b; }
@@ -189,6 +189,19 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Ne
 .loading { display: flex; align-items: center; justify-content: center; min-height: 60vh; flex-direction: column; gap: 16px; color: #94a3b8; }
 .spinner { width: 36px; height: 36px; border: 3px solid #e2e8f0; border-top-color: #4f46e5; border-radius: 50%; animation: spin 0.7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
+.approval-modal-body { padding: 0; }
+.approval-member { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+.approval-avatar { width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 800; color: #fff; flex-shrink: 0; }
+.approval-detail { margin-bottom: 14px; }
+.approval-detail strong { display: block; font-size: 12px; color: #94a3b8; margin-bottom: 5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+.approval-detail { font-size: 14px; color: #0f172a; }
+.modal-actions-approval { display: flex; gap: 10px; margin-top: 24px; }
+.btn-approve { flex: 1; background: #16a34a; color: #fff; padding: 10px 16px; border: none; border-radius: 9px; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.15s; }
+.btn-approve:hover { background: #15803d; }
+.btn-reject { flex: 1; background: #ef4444; color: #fff; padding: 10px 16px; border: none; border-radius: 9px; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.15s; }
+.btn-reject:hover { background: #dc2626; }
+.btn-delete { background: #fef2f2; color: #dc2626; padding: 10px 16px; border: 1.5px solid #fca5a5; border-radius: 9px; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.15s; }
+.btn-delete:hover { background: #fee2e2; }
 @media (max-width: 640px) {
   .main { padding: 16px 12px; }
   .page-header { flex-direction: column; }
@@ -197,8 +210,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Ne
   .auth-card { padding: 36px 24px; }
   .auth-name { display: none; }
 }
-</style>
-</head>
+</style></head>
 <body>
 <div id="root"></div>
 <script type="text/babel">
@@ -284,6 +296,33 @@ function canApprove(userEmail, memberName) {
 }
 function isAnyAdmin(userEmail) {
   return ['super-admin','mini-admin','hidden-admin'].includes(getUserRole(userEmail));
+}
+/* ─── PERMISSION LOGIC FOR APPROVAL MODAL ─── */
+function getApprovalModalConfig(userEmail, vacation) {
+  const role = getUserRole(userEmail);
+  const isSuperAdmin = role === 'super-admin' || role === 'hidden-admin';
+  const isMiniAdmin = role === 'mini-admin';
+  const isOwnEntry = vacation.member === (DEFAULT_TEAM.find(m => m.email === userEmail)?.name || '');
+
+  if (isSuperAdmin) {
+    return { showApprove: true, showReject: true, showDelete: true, canApprove: true, canReject: true, canDelete: true };
+  }
+
+  if (isMiniAdmin) {
+    if (vacation.member === TIAGO_NAME) {
+      return { showApprove: false, showReject: false, showDelete: false, canApprove: false, canReject: false, canDelete: false };
+    }
+    if (isOwnEntry) {
+      return { showApprove: false, showReject: false, showDelete: true, canApprove: false, canReject: false, canDelete: true };
+    }
+    return { showApprove: true, showReject: true, showDelete: false, canApprove: true, canReject: true, canDelete: false };
+  }
+
+  if (isOwnEntry) {
+    return { showApprove: false, showReject: false, showDelete: true, canApprove: false, canReject: false, canDelete: true };
+  }
+
+  return { showApprove: false, showReject: false, showDelete: false, canApprove: false, canReject: false, canDelete: false };
 }
 /* ─── MISC HELPERS ─── */
 function pad2(n)   { return String(n).padStart(2,"0"); }
@@ -441,19 +480,67 @@ function AuthUserPill({ user }) {
     </div>
   );
 }
+/* ─── QUICK APPROVAL MODAL ─── */
+function QuickApprovalModal({ vacation, team, userEmail, onApprove, onReject, onDelete, onClose }) {
+  if (!vacation) return null;
+  const member = team.find(m => m.name === vacation.member) || { name: vacation.member };
+  const config = getApprovalModalConfig(userEmail, vacation);
+  const wd = wdays(vacation.startDate, vacation.endDate);
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" onClick={e => e.stopPropagation()}>
+        <div className="modal-title">
+          Pedido de Férias
+          <button className="modal-close" onClick={onClose}>×</button>
+        </div>
+        <div className="approval-modal-body">
+          <div className="approval-member" style={{marginBottom:20}}>
+            <div className="approval-avatar" style={{background:member.color}}>{toInitials(member.name)}</div>
+            <div>
+              <div style={{fontWeight:700,color:"#0f172a"}}>{member.name}</div>
+              {member.email && <div style={{fontSize:12,color:"#94a3b8"}}>{member.email}</div>}
+            </div>
+          </div>
+          <div className="approval-detail">
+            <strong>Período</strong>
+            {fmt(vacation.startDate, vacation.endDate)}
+          </div>
+          <div className="approval-detail">
+            <strong>Dias úteis</strong>
+            {wd} {wd===1?"dia":"dias"}
+          </div>
+          {vacation.note && <div className="approval-detail">
+            <strong>Nota</strong>
+            {vacation.note}
+          </div>}
+        </div>
+        <div className="modal-actions-approval">
+          {config.showDelete && <button className="btn-delete" onClick={() => onDelete(vacation.id)}>🗑️ Eliminar</button>}
+          {config.showReject && <button className="btn-reject" onClick={() => onReject(vacation)}>❌ Rejeitar</button>}
+          {config.showApprove && <button className="btn-approve" onClick={() => onApprove(vacation)}>✅ Aprovar</button>}
+          {!config.showApprove && !config.showReject && !config.showDelete && (
+            <button className="btn-cancel" onClick={onClose} style={{width:"100%"}}>Fechar</button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 /* ─── APP ─── */
 function App() {
   if (!IS_CONFIGURED) return <SetupScreen />;
 
   // ── All hooks MUST be declared before any conditional early returns ──
-  const [authUser,  setAuthUser]  = useState(undefined);
-  const [team,      setTeam]      = useState(null);
-  const [vacations, setVacations] = useState(null);
-  const [online,    setOnline]    = useState(false);
-  const [view,      setView]      = useState("team");
-  const [year,      setYear]      = useState(2026);
-  const [month,     setMonth]     = useState(()=>{ const n=new Date(); return n.getFullYear()===2026?n.getMonth():0; });
-  const [modal,     setModal]     = useState(null);
+  const [authUser,       setAuthUser]       = useState(undefined);
+  const [team,           setTeam]           = useState(null);
+  const [vacations,      setVacations]      = useState(null);
+  const [online,         setOnline]         = useState(false);
+  const [view,           setView]           = useState("team");
+  const [year,           setYear]           = useState(2026);
+  const [month,          setMonth]          = useState(()=>{ const n=new Date(); return n.getFullYear()===2026?n.getMonth():0; });
+  const [modal,          setModal]          = useState(null);
+  const [approvalModal,  setApprovalModal]  = useState(null);
 
   useEffect(() => { const u = auth.onAuthStateChanged(user => setAuthUser(user||null)); return u; }, []);
   useEffect(() => {
@@ -472,7 +559,7 @@ function App() {
     db.ref("vacations").on("value", vH);
     return () => { teamRef.off("value",tH); db.ref("vacations").off("value",vH); };
   }, [authUser]);
-  useEffect(() => { const h=e=>{if(e.key==="Escape")setModal(null);}; window.addEventListener("keydown",h); return()=>window.removeEventListener("keydown",h); }, []);
+  useEffect(() => { const h=e=>{if(e.key==="Escape"){setModal(null);setApprovalModal(null);}}; window.addEventListener("keydown",h); return()=>window.removeEventListener("keydown",h); }, []);
 
   // Compute role + pendingCount HERE — before any early returns — so hook call order is always the same
   const role = authUser ? getUserRole(authUser.email) : 'member';
@@ -509,7 +596,20 @@ function App() {
     }
     setModal(null);
   };
-  const deleteVacation = (id) => { if(window.confirm("Eliminar este registo de férias?")) db.ref(`vacations/${id}`).remove(); };
+  const deleteVacation = (id) => { if(window.confirm("Eliminar este registo de férias?")) db.ref(`vacations/${id}`).remove(); setApprovalModal(null); };
+  const approveVacation = (vacation) => {
+    const config = getApprovalModalConfig(authUser.email, vacation);
+    if (!config.canApprove) return;
+    db.ref(`vacations/${vacation.id}/status`).set('approved');
+    notifyApproval(vacation, authUser.email, team);
+    setApprovalModal(null);
+  };
+  const rejectVacation = (vacation) => {
+    const config = getApprovalModalConfig(authUser.email, vacation);
+    if (!config.canReject) return;
+    db.ref(`vacations/${vacation.id}/status`).set('rejected');
+    setApprovalModal(null);
+  };
   const cycleStatus = (id) => {
     const v = vacations.find(x=>x.id===id);
     if (!v || !canApprove(authUser.email, v.member)) return;
@@ -531,6 +631,14 @@ function App() {
   const openAdd  = (def) => setModal({mode:"add",  userEmail:authUser.email, defaultMember:def||(view!=="team"&&view!=="manage"?view:(team&&team[0]?.name)||"")});
   const openEdit = (entry) => setModal({mode:"edit", userEmail:authUser.email, entry});
   const currentMember = team?.find(m=>m.name===view);
+
+  const handleVacationClick = (vacation) => {
+    const config = getApprovalModalConfig(authUser.email, vacation);
+    if (config.showApprove || config.showReject || config.showDelete) {
+      setApprovalModal(vacation);
+    }
+  };
+
   return (
     <div>
       <nav className="nav">
@@ -549,11 +657,12 @@ function App() {
         <AuthUserPill user={authUser}/>
       </nav>
       <div className="main">
-        {view==="team"   && <TeamView vacations={vacations} team={team} year={year} month={month} onPrev={prevMonth} onNext={nextMonth} onPersonClick={n=>setView(n)} onAdd={()=>openAdd(null)} userEmail={authUser.email} onCycleStatus={cycleStatus}/>}
+        {view==="team"   && <TeamView vacations={vacations} team={team} year={year} month={month} onPrev={prevMonth} onNext={nextMonth} onPersonClick={n=>setView(n)} onAdd={()=>openAdd(null)} userEmail={authUser.email} onCycleStatus={cycleStatus} onVacationClick={handleVacationClick}/>}
         {view==="manage" && <ManageTeamView team={team} vacations={vacations} onAdd={addMember} onRemove={removeMember} onColorChange={updateMemberColor} onEmailChange={updateMemberEmail} currentUserEmail={authUser.email}/>}
-        {view!=="team"&&view!=="manage"&&currentMember && <PersonView member={currentMember} vacations={vacations.filter(v=>v.member===currentMember.name)} onAdd={()=>openAdd(currentMember.name)} onEdit={openEdit} onDelete={deleteVacation} onCycleStatus={cycleStatus} userEmail={authUser.email}/>}
+        {view!=="team"&&view!=="manage"&&currentMember && <PersonView member={currentMember} vacations={vacations.filter(v=>v.member===currentMember.name)} onAdd={()=>openAdd(currentMember.name)} onEdit={openEdit} onDelete={deleteVacation} onCycleStatus={cycleStatus} userEmail={authUser.email} onVacationClick={handleVacationClick}/>}
       </div>
       {modal && <VacationModal mode={modal.mode} defaultMember={modal.defaultMember} entry={modal.entry} team={team} userEmail={modal.userEmail} onSave={saveVacation} onClose={()=>setModal(null)}/>}
+      {approvalModal && <QuickApprovalModal vacation={approvalModal} team={team} userEmail={authUser.email} onApprove={approveVacation} onReject={rejectVacation} onDelete={deleteVacation} onClose={()=>setApprovalModal(null)}/>}
     </div>
   );
 }
@@ -673,7 +782,7 @@ function AddMemberModal({ team, onAdd, onClose }) {
   );
 }
 /* ─── TEAM VIEW ─── */
-function TeamView({ vacations, team, year, month, onPrev, onNext, onPersonClick, onAdd, userEmail, onCycleStatus }) {
+function TeamView({ vacations, team, year, month, onPrev, onNext, onPersonClick, onAdd, userEmail, onCycleStatus, onVacationClick }) {
   const now=today(), numDays=dim(year,month);
   const dayMap=useMemo(()=>{ const m={}; vacations.forEach(v=>expand(v.startDate,v.endDate).forEach(d=>{const k=`${d}__${v.member}`;if(!m[k])m[k]=v;})); return m; },[vacations]);
   const days=useMemo(()=>Array.from({length:numDays},(_,i)=>{const d=i+1,s=ds(year,month,d),dow=parse(s).getDay();return{d,s,dow,isWeekend:dow===0||dow===6,isToday:s===now};}),[year,month,numDays,now]);
@@ -725,7 +834,7 @@ function TeamView({ vacations, team, year, month, onPrev, onNext, onPersonClick,
                   }
                   return(
                     <td key={d} className={`gantt-cell-td${isWeekend?" weekend":""}${isToday?" today-col":""}`}>
-                      {entry&&<div className="vac-pill" title={`${member.name}: ${fmt(entry.startDate,entry.endDate)} — ${entry.status}${entry.note?` · "${entry.note}"`:""}`}><div className={`vac-pill-inner${pC?" "+pC:""}`} style={pS}/></div>}
+                      {entry&&<div className="vac-pill" title={`${member.name}: ${fmt(entry.startDate,entry.endDate)} — ${entry.status}${entry.note?` · "${entry.note}"`:""}`} onClick={()=>onVacationClick(entry)}><div className={`vac-pill-inner${pC?" "+pC:""}`} style={pS}/></div>}
                     </td>
                   );
                 })}
@@ -746,7 +855,7 @@ function TeamView({ vacations, team, year, month, onPrev, onNext, onPersonClick,
   );
 }
 /* ─── PERSON VIEW ─── */
-function PersonView({ member, vacations, onAdd, onEdit, onDelete, onCycleStatus, userEmail }) {
+function PersonView({ member, vacations, onAdd, onEdit, onDelete, onCycleStatus, userEmail, onVacationClick }) {
   const sorted=[...vacations].sort((a,b)=>a.startDate.localeCompare(b.startDate));
   const stats=useMemo(()=>{
     const tot=vacations.reduce((s,v)=>s+wdays(v.startDate,v.endDate),0);
@@ -781,18 +890,18 @@ function PersonView({ member, vacations, onAdd, onEdit, onDelete, onCycleStatus,
           {sorted.map(v=>{
             const wd=wdays(v.startDate,v.endDate),cd=expand(v.startDate,v.endDate).length;
             return (
-              <div key={v.id} className={`vac-card ${v.status}`}>
+              <div key={v.id} className={`vac-card ${v.status}`} onClick={() => onVacationClick(v)}>
                 <div className="vac-card-dates">
                   <div className="vac-date-range">{fmt(v.startDate,v.endDate)}</div>
                   <div className="vac-meta">{wd} dia{wd!==1?"s":""} útei{wd!==1?"s":"l"}{cd!==wd?` (${cd} dias corridos)`:""}</div>
                   {v.note&&<div className="vac-note">💬 {v.note}</div>}
                 </div>
                 <div className="vac-card-actions">
-                  <span className={`status-badge ${v.status}${userCanApprove?" clickable":""}`} onClick={userCanApprove?()=>onCycleStatus(v.id):undefined} title={userCanApprove?"Clica para alterar: Pendente → Aprovado → Rejeitado":v.status==="approved"?"Aprovado":v.status==="pending"?"Pendente":"Rejeitado"}>
+                  <span className={`status-badge ${v.status}${userCanApprove?" clickable":""}`} onClick={(e)=>{e.stopPropagation();if(userCanApprove)onCycleStatus(v.id);}} title={userCanApprove?"Clica para alterar: Pendente → Aprovado → Rejeitado":v.status==="approved"?"Aprovado":v.status==="pending"?"Pendente":"Rejeitado"}>
                     {v.status==="approved"?"✅ Aprovado":v.status==="pending"?"⏳ Pendente":"❌ Rejeitado"}
                   </span>
-                  <button className="btn-edit-ghost" onClick={()=>onEdit(v)}>✏️ Editar</button>
-                  <button className="btn-danger-ghost" onClick={()=>onDelete(v.id)}>🗑️</button>
+                  <button className="btn-edit-ghost" onClick={(e)=>{e.stopPropagation();onEdit(v);}}>✏️ Editar</button>
+                  <button className="btn-danger-ghost" onClick={(e)=>{e.stopPropagation();onDelete(v.id);}}>🗑️</button>
                 </div>
               </div>
             );
