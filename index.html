@@ -237,6 +237,15 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Ne
 .history-target { font-weight: 700; color: #0369a1; background: #e0f2fe; border-radius: 4px; padding: 0 4px; }
 .history-empty { text-align: center; padding: 60px 20px; color: #94a3b8; font-size: 14px; }
 .nav-tab.history-tab { border-left: 1px solid #e2e8f0; }
+/* hidden-admin delete column */
+.history-log.deletable .history-entry { grid-template-columns: 120px 150px 1fr 28px; align-items: center; }
+.history-delete-btn { background: none; border: none; cursor: pointer; color: #cbd5e1; padding: 0; border-radius: 4px; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 16px; line-height: 1; opacity: 0; transition: opacity 0.15s, color 0.15s, background 0.15s; }
+.history-entry:hover .history-delete-btn { opacity: 1; }
+.history-delete-btn:hover { color: #ef4444; background: #fee2e2; }
+/* login events */
+.history-entry.login-entry { background: #f8fafc; }
+.history-entry.login-entry .history-actor { color: #94a3b8; font-weight: 600; }
+.history-entry.login-entry .history-line { color: #94a3b8; font-style: italic; }
 /* TEAM CARD DROPDOWN */
 .summary-card.team-filter { cursor:pointer; user-select:none; position:relative; }
 .summary-card.team-filter:hover { background:#f5f3ff; border-color:#c7d2fe; }
@@ -581,8 +590,9 @@ function QuickApprovalModal({ vacation, team, userEmail, onApprove, onReject, on
   );
 }
 /* ─── HISTORY VIEW ─── */
-function HistoryView({ db }) {
+function HistoryView({ db, userEmail }) {
   const [entries, setEntries] = React.useState(null);
+  const isHiddenAdmin = getUserRole(userEmail) === 'hidden-admin';
   React.useEffect(() => {
     const ref = db.ref('history').orderByChild('ts').limitToLast(300);
     ref.on('value', snap => {
@@ -593,6 +603,7 @@ function HistoryView({ db }) {
     });
     return () => ref.off();
   }, []);
+  const deleteEntry = id => db.ref(`history/${id}`).remove();
   const fmtDate = ts => new Date(ts).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
   const fmtTime = ts => new Date(ts).toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
   const renderAction = (action, target) => {
@@ -611,15 +622,18 @@ function HistoryView({ db }) {
       {entries === null && <div className="history-empty">Loading…</div>}
       {entries !== null && entries.length === 0 && <div className="history-empty">No activity recorded yet.</div>}
       {entries !== null && entries.length > 0 && (
-        <div className="history-log">
+        <div className={`history-log${isHiddenAdmin ? ' deletable' : ''}`}>
           {entries.map(e => (
-            <div key={e.id} className="history-entry">
+            <div key={e.id} className={`history-entry${e.action === 'logged in' ? ' login-entry' : ''}`}>
               <div className="history-ts">
                 <span className="history-ts-date">{fmtDate(e.ts)}</span>
                 <span className="history-ts-time">{fmtTime(e.ts)}</span>
               </div>
               <div className="history-actor">{e.actor}</div>
               <div className="history-line">{renderAction(e.action, e.target)}</div>
+              {isHiddenAdmin && (
+                <button className="history-delete-btn" onClick={() => deleteEntry(e.id)} title="Remove from log">×</button>
+              )}
             </div>
           ))}
         </div>
@@ -683,7 +697,17 @@ function App() {
   const [modal,          setModal]          = useState(null);
   const [approvalModal,  setApprovalModal]  = useState(null);
 
-  useEffect(() => { const u = auth.onAuthStateChanged(user => setAuthUser(user||null)); return u; }, []);
+  useEffect(() => {
+    const u = auth.onAuthStateChanged(user => {
+      setAuthUser(user || null);
+      if (user) {
+        const id = uid();
+        const actor = user.displayName || user.email || 'Unknown';
+        db.ref(`history/${id}`).set({ id, actor, action: 'logged in', target: null, ts: Date.now() });
+      }
+    });
+    return u;
+  }, []);
   useEffect(() => {
     if (!authUser) return;
     const teamRef = db.ref("team");
@@ -818,7 +842,7 @@ function App() {
       <div className="main">
         {view==="team"   && <TeamView vacations={vacations} team={team} year={year} month={month} onPrev={prevMonth} onNext={nextMonth} onPersonClick={n=>setView(n)} onAdd={()=>openAdd(null)} userEmail={authUser.email} onCycleStatus={cycleStatus} onVacationClick={handleVacationClick} onSetMonth={setMonth}/>}
         {view==="manage" && <ManageTeamView team={team} vacations={vacations} onAdd={addMember} onRemove={removeMember} onColorChange={updateMemberColor} onEmailChange={updateMemberEmail} currentUserEmail={authUser.email}/>}
-        {view==="history" && (isAnyAdmin(authUser.email) ? <HistoryView db={db}/> : (setView("team"),null))}
+        {view==="history" && (isAnyAdmin(authUser.email) ? <HistoryView db={db} userEmail={authUser.email}/> : (setView("team"),null))}
         {view!=="team"&&view!=="manage"&&view!=="history"&&currentMember && <PersonView member={currentMember} vacations={vacations.filter(v=>v.member===currentMember.name)} onAdd={()=>openAdd(currentMember.name)} onEdit={openEdit} onDelete={deleteVacation} onCycleStatus={cycleStatus} userEmail={authUser.email} onVacationClick={handleVacationClick}/>}
       </div>
       {modal && <VacationModal mode={modal.mode} defaultMember={modal.defaultMember} entry={modal.entry} team={team} userEmail={modal.userEmail} onSave={saveVacation} onClose={()=>setModal(null)}/>}
@@ -1080,7 +1104,7 @@ function TeamView({ vacations, team, year, month, onPrev, onNext, onPersonClick,
         </div>
       </div>
       {yearMode && <YearView vacations={vacations} team={team} year={year} onMonthClick={goToMonth}/>}
-      {!yearMode && <div className="gantt-wrap"><div className="gantt-scroll">
+      {!yearMode && <><div className="gantt-wrap"><div className="gantt-scroll">
         <table className="gantt-table">
           <thead><tr>
             <th className="gantt-name-th">Membro</th>
@@ -1125,7 +1149,7 @@ function TeamView({ vacations, team, year, month, onPrev, onNext, onPersonClick,
           <div className="legend-item"><div className="legend-swatch" style={{background:"#ef4444",opacity:0.6}}/> Rejeitado</div>
           <div className="legend-item"><div className="legend-swatch" style={{background:"#f1f5f9",border:"1px dashed #cbd5e1"}}/> Fim de semana</div>
         </div>
-      </div>}
+      </div></>}
     </div>
   );
 }
