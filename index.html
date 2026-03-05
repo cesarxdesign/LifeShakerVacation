@@ -187,6 +187,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Ne
 .form-label { display: block; font-size: 13px; font-weight: 700; color: #374151; margin-bottom: 7px; }
 .form-input { width: 100%; padding: 10px 13px; border: 1.5px solid #e2e8f0; border-radius: 9px; font-size: 14px; outline: none; transition: border-color 0.15s; color: #0f172a; background: #fff; }
 .form-input:focus { border-color: #4f46e5; box-shadow: 0 0 0 3px rgba(79,70,229,0.1); }
+.form-input.date-filled { border-color: #4f46e5; background: #f5f3ff; }
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .modal-actions { display: flex; gap: 10px; margin-top: 26px; justify-content: flex-end; }
 .btn-cancel { padding: 10px 20px; border-radius: 9px; border: 1.5px solid #e2e8f0; background: #fff; cursor: pointer; font-size: 14px; font-weight: 600; color: #64748b; transition: all 0.15s; }
@@ -1304,8 +1305,9 @@ function VacationModal({ mode, defaultMember, entry, team, onSave, onClose, user
   const myName     = team.find(m => m.email === userEmail)?.name || defaultMember || (team[0]?.name||"");
   const initMember = mode==='add' && !adminUser ? myName : (entry?.member || defaultMember || myName);
   const [member,    setMember]    = useState(initMember);
-  const [startDate, setStartDate] = useState(entry?.startDate || "");
-  const [endDate,   setEndDate]   = useState(entry?.endDate   || "");
+  const [{ startDate, endDate }, setDates] = useState({ startDate: entry?.startDate || "", endDate: entry?.endDate || "" });
+  const setStartDate = v => setDates(prev => v && prev.endDate && v > prev.endDate ? { startDate: prev.endDate, endDate: v } : { ...prev, startDate: v });
+  const setEndDate   = v => setDates(prev => v && prev.startDate && v < prev.startDate ? { startDate: v, endDate: prev.startDate } : { ...prev, endDate: v });
   const [status,    setStatus]    = useState(entry?.status    || "pending");
   const [note,      setNote]      = useState(entry?.note      || "");
   const endDateRef = useRef(null);
@@ -1340,8 +1342,8 @@ function VacationModal({ mode, defaultMember, entry, team, onSave, onClose, user
           }
         </div>
         <div className="form-row">
-          <div className="form-group"><label className="form-label">Data início *</label><input type="date" className="form-input" value={startDate} max={maxDate} onChange={e=>{ const v=e.target.value; if(v&&endDate&&v>endDate){setStartDate(endDate);setEndDate(v);}else{setStartDate(v);} }}/></div>
-          <div className="form-group"><label className="form-label">Data fim *</label><input ref={endDateRef} type="date" className="form-input" value={endDate} max={maxDate} onChange={e=>{ const v=e.target.value; if(v&&startDate&&v<startDate){setEndDate(startDate);setStartDate(v);}else{setEndDate(v);} }}/></div>
+          <div className="form-group"><label className="form-label">Data início *</label><input type="date" className={`form-input${startDate?" date-filled":""}`} value={startDate} max={maxDate} onChange={e=>setStartDate(e.target.value)}/></div>
+          <div className="form-group"><label className="form-label">Data fim *</label><input ref={endDateRef} type="date" className={`form-input${endDate?" date-filled":""}`} value={endDate} max={maxDate} onChange={e=>setEndDate(e.target.value)}/></div>
         </div>
         {wd!==null&&<div style={{fontSize:12,color:"#64748b",marginTop:-10,marginBottom:14,paddingLeft:2}}>📅 {wd} dia{wd!==1?"s":""} útei{wd!==1?"s":"l"}</div>}
         {isAdding
