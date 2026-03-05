@@ -274,17 +274,15 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Ne
 .mini-hdr.we { color:#cbd5e1; }
 .mini-cell { position:relative; aspect-ratio:1; display:flex; align-items:center; justify-content:center; border-radius:4px; min-width:0; overflow:visible; }
 .mini-cell.we { background:#f9fafb; }
-.mini-cell.pending-bg { background:#fef9c3; border-radius:4px; }
 .mini-cell-num { font-size:9px; color:#94a3b8; line-height:1; position:relative; z-index:1; pointer-events:none; user-select:none; }
 .mini-cell.we .mini-cell-num { color:#cbd5e1; }
-.mini-cell.pending-bg .mini-cell-num { color:#92400e; }
 .mini-cell.yc-clickable { cursor:pointer; }
-.mini-cell.yc-clickable:hover { background:rgba(79,70,229,0.07) !important; }
-.mini-dot-approved { position:absolute; top:1px; right:1px; width:5px; height:5px; border-radius:50%; background:#16a34a; z-index:3; pointer-events:none; }
-.mini-cell-circle { position:absolute; width:68%; aspect-ratio:1; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:800; z-index:2; cursor:pointer; transition:filter .12s; }
-.mini-cell-circle:hover { filter:brightness(.88); }
-.mini-cell-circle.all-approved { background:#16a34a; color:#fff; }
-.mini-cell-circle.has-pending { background:#f59e0b; color:#fff; }
+.mini-cell.yc-clickable:hover { background:rgba(79,70,229,0.07); }
+.mcd-wrap { position:absolute; top:3px; right:3px; display:flex; gap:1px; align-items:center; pointer-events:none; z-index:3; }
+.mcd { width:5px; height:5px; border-radius:50%; flex-shrink:0; }
+.mcd.approved { background:#16a34a; }
+.mcd.pending  { background:#f59e0b; }
+.mcd.ov { display:flex; align-items:center; justify-content:center; font-size:4px; font-weight:900; color:#fff; line-height:1; }
 </style></head>
 <body>
 <div id="root"></div>
@@ -1052,32 +1050,31 @@ function YearView({ vacations, team, year, onMonthClick, onAddForDate }) {
                 const dateStr = ds(year, mi, d);
                 const dow = parse(dateStr).getDay();
                 const isWe = dow === 0 || dow === 6;
-                const bookings = dayMap[dateStr] || [];
-                const count = bookings.length;
-                const allApproved = count > 0 && bookings.every(b => b.status === 'approved');
-                const hasPending  = bookings.some(b => b.status === 'pending');
-
-                let inner = null;
-                let cellMod = '';
-                if (count === 1) {
-                  if (allApproved) {
-                    inner = <span className="mini-dot-approved"/>;
-                  } else {
-                    cellMod = ' pending-bg';
-                  }
-                } else if (count >= 2) {
-                  inner = (
-                    <div className={`mini-cell-circle ${allApproved ? 'all-approved' : 'has-pending'}`}
-                      onClick={e=>{ e.stopPropagation(); onMonthClick(mi); }}>
-                      {count}
-                    </div>
-                  );
-                }
+                const raw = dayMap[dateStr] || [];
+                // sort: approved first, then pending; rejected already excluded
+                const sorted = [
+                  ...raw.filter(b => b.status === 'approved'),
+                  ...raw.filter(b => b.status === 'pending'),
+                ];
+                const total = sorted.length;
+                const show  = Math.min(total, 3);
+                const dots  = total > 0 ? (
+                  <div className="mcd-wrap">
+                    {Array.from({length: show}, (_, i) => {
+                      const isOverflow = total > 3 && i === 2;
+                      return (
+                        <span key={i} className={`mcd ${sorted[i].status}${isOverflow ? ' ov' : ''}`}>
+                          {isOverflow ? '+' : ''}
+                        </span>
+                      );
+                    })}
+                  </div>
+                ) : null;
                 return (
-                  <div key={d} className={`mini-cell${isWe ? ' we' : ''}${cellMod} yc-clickable`}
+                  <div key={d} className={`mini-cell${isWe ? ' we' : ''} yc-clickable`}
                     onClick={()=>onAddForDate(dateStr)}>
                     <span className="mini-cell-num">{d}</span>
-                    {inner}
+                    {dots}
                   </div>
                 );
               })}
@@ -1364,7 +1361,7 @@ function VacationModal({ mode, defaultMember, entry, team, onSave, onClose, user
           }
         </div>
         <div className="form-row">
-          <div className="form-group"><label className="form-label">Data início *</label><input type="date" className="form-input" value={startDate} max={maxDate} onChange={e=>{setStartDate(e.target.value);if(!endDate||e.target.value>endDate)setEndDate(e.target.value);}}/></div>
+          <div className="form-group"><label className="form-label">Data início *</label><input type="date" className="form-input" value={startDate} max={maxDate} onChange={e=>{setStartDate(e.target.value);if(endDate&&e.target.value>endDate)setEndDate(e.target.value);}}/></div>
           <div className="form-group"><label className="form-label">Data fim *</label><input ref={endDateRef} type="date" className="form-input" value={endDate} max={maxDate} onChange={e=>{ const v=e.target.value; if(v&&startDate&&v<startDate){setEndDate(startDate);setStartDate(v);}else{setEndDate(v);} }}/></div>
         </div>
         {wd!==null&&<div style={{fontSize:12,color:"#64748b",marginTop:-10,marginBottom:14,paddingLeft:2}}>📅 {wd} dia{wd!==1?"s":""} útei{wd!==1?"s":"l"}</div>}
