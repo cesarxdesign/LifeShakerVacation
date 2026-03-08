@@ -405,12 +405,12 @@ function getApprovalModalConfig(userEmail, vacation, team) {
 
   if (isMiniAdmin) {
     if (vacation.member === TIAGO_NAME) {
-      return { showApprove: false, showReject: false, showDelete: false, canApprove: false, canReject: false, canDelete: false };
+      return { showApprove: false, showReject: false, showDelete: true, canApprove: false, canReject: false, canDelete: true };
     }
     if (isOwnEntry) {
       return { showApprove: true, showReject: true, showDelete: true, canApprove: true, canReject: true, canDelete: true };
     }
-    return { showApprove: true, showReject: true, showDelete: false, canApprove: true, canReject: true, canDelete: false };
+    return { showApprove: true, showReject: true, showDelete: true, canApprove: true, canReject: true, canDelete: true };
   }
 
   if (isOwnEntry) {
