@@ -33,6 +33,17 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Ne
 .conn-dot.online  { background: #16a34a; box-shadow: 0 0 0 2px #dcfce7; }
 .conn-dot.offline { background: #94a3b8; }
 .pending-badge { background: #ef4444; color: #fff; border-radius: 99px; font-size: 10px; font-weight: 800; min-width: 17px; height: 17px; padding: 0 5px; display: inline-flex; align-items: center; justify-content: center; line-height: 1; }
+/* PEOPLE DROPDOWN */
+.people-dd-wrap { position: relative; display: flex; align-items: stretch; }
+.people-dd-caret { font-size: 9px; opacity: 0.5; margin-left: 2px; }
+.people-dd-panel { position: absolute; top: calc(100% + 2px); left: 0; background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; box-shadow: 0 8px 28px rgba(0,0,0,0.13); min-width: 210px; z-index: 500; padding: 5px 0; }
+.people-dd-item { display: flex; align-items: center; gap: 9px; padding: 7px 14px; font-size: 13px; color: #374151; cursor: default; }
+.people-dd-item:hover { background: #f8fafc; }
+.people-dd-item input[type="checkbox"] { cursor: pointer; accent-color: #4f46e5; flex-shrink: 0; width: 14px; height: 14px; }
+.people-dd-item-name { cursor: pointer; flex: 1; line-height: 1.3; }
+.people-dd-item-name:hover { color: #4f46e5; text-decoration: underline; }
+.people-dd-sep { height: 1px; background: #e2e8f0; margin: 4px 0; }
+.people-dd-count { font-size: 10px; background: #ede9fe; color: #5b21b6; border-radius: 99px; padding: 1px 6px; font-weight: 700; margin-left: 2px; }
 /* AUTH PILL */
 .auth-user-pill { display: flex; align-items: center; gap: 10px; padding: 0 16px; border-left: 1px solid #e2e8f0; margin-left: auto; flex-shrink: 0; min-height: 52px; }
 .auth-avatar { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
@@ -68,21 +79,15 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Ne
 .btn:active { transform: scale(0.97); }
 .btn-primary { background: #4f46e5; color: #fff; box-shadow: 0 1px 4px rgba(79,70,229,0.3); }
 .btn-primary:hover { background: #4338ca; }
+.btn-ghost { background: none; color: #64748b; border: 1.5px solid #e2e8f0; padding: 7px 14px; }
+.btn-ghost:hover { background: #f1f5f9; color: #0f172a; }
+.today-btn { font-size: 13px; }
 .btn-danger-ghost { background: #fef2f2; color: #dc2626; font-size: 12px; padding: 6px 10px; border: none; border-radius: 9px; cursor: pointer; font-weight: 600; transition: all 0.15s; }
 .btn-danger-ghost:hover { background: #fee2e2; }
 .btn-edit-ghost { background: #eff6ff; color: #2563eb; font-size: 12px; padding: 6px 10px; border: none; border-radius: 9px; cursor: pointer; font-weight: 600; transition: all 0.15s; }
 .btn-edit-ghost:hover { background: #dbeafe; }
-.btn-approve { background: #dcfce7; color: #16a34a; font-size: 12px; padding: 6px 12px; border: 1.5px solid #bbf7d0; border-radius: 9px; cursor: pointer; font-weight: 700; transition: all 0.15s; white-space: nowrap; }
-.btn-approve:hover { background: #16a34a; color: #fff; border-color: #16a34a; }
-.btn-reject  { background: #fef2f2; color: #dc2626; font-size: 12px; padding: 6px 12px; border: 1.5px solid #fecaca; border-radius: 9px; cursor: pointer; font-weight: 700; transition: all 0.15s; white-space: nowrap; }
-.btn-reject:hover  { background: #dc2626; color: #fff; border-color: #dc2626; }
-.pending-view-header { display: flex; align-items: center; gap: 16px; padding: 20px 0 4px; margin-bottom: 4px; }
-.pending-view-back { background: none; border: 1.5px solid #e2e8f0; border-radius: 9px; padding: 6px 14px; font-size: 13px; font-weight: 600; color: #64748b; cursor: pointer; transition: all 0.15s; }
-.pending-view-back:hover { background: #f1f5f9; color: #0f172a; }
-.pending-view-title { font-size: 22px; font-weight: 800; color: #0f172a; }
-.pending-view-sub { font-size: 13px; color: #94a3b8; margin-top: 2px; }
 /* GANTT */
-.gantt-wrap { background: #fff; border-radius: 14px; box-shadow: 0 1px 4px rgba(0,0,0,0.07), 0 4px 20px rgba(0,0,0,0.04); overflow: hidden; }
+.gantt-wrap { background: #fff; border-radius: 14px; box-shadow: 0 1px 4px rgba(0,0,0,0.07), 0 4px 20px rgba(0,0,0,0.04); padding: 12px 18px; }
 .gantt-scroll { overflow-x: auto; }
 .gantt-table { border-collapse: collapse; width: 100%; }
 .gantt-table th, .gantt-table td { padding: 0; }
@@ -105,7 +110,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Ne
 .gantt-cell-td { min-width: 32px; width: 32px; height: 44px; border-right: 1px solid #f1f5f9; position: relative; vertical-align: middle; }
 .gantt-cell-td.weekend { background: #f9fafb; }
 .gantt-cell-td.today-col { background: #f9f8ff; }
-.vac-pill { position: absolute; top: 8px; bottom: 8px; left: 0; right: 0; }
+.gantt-cell-td.gantt-add-cell { cursor: pointer; }
+.gantt-cell-td.gantt-add-cell:hover { background: rgba(79,70,229,0.06); }
+.gantt-cell-td.gantt-add-cell:hover::after { content: '+'; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: rgba(79,70,229,0.4); pointer-events: none; }
+.vac-pill { position: absolute; top: 8px; bottom: 8px; left: 0; right: 0; cursor: pointer; }
 .vac-pill-inner { position: absolute; top: 0; bottom: 0; left: 0; right: 0; }
 .vac-pill-inner.pending-pill  { opacity: 0.75; }
 .vac-pill-inner.rejected-pill { opacity: 0.6; }
@@ -127,7 +135,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Ne
 .stat-rejected  { background: #fef2f2; color: #dc2626; }
 .stat-total     { background: #f1f5f9; color: #475569; }
 .vac-list { display: flex; flex-direction: column; gap: 10px; }
-.vac-card { background: #fff; border-radius: 12px; padding: 16px 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); display: flex; align-items: center; gap: 16px; border-left: 4px solid #e2e8f0; transition: box-shadow 0.15s; }
+.vac-card { background: #fff; border-radius: 12px; padding: 16px 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); display: flex; align-items: center; gap: 16px; border-left: 4px solid #e2e8f0; transition: box-shadow 0.15s; cursor: pointer; }
 .vac-card:hover { box-shadow: 0 2px 10px rgba(0,0,0,0.09); }
 .vac-card.approved { border-left-color: #16a34a; }
 .vac-card.pending  { border-left-color: #f59e0b; }
@@ -180,6 +188,27 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Ne
 .form-input { width: 100%; padding: 10px 13px; border: 1.5px solid #e2e8f0; border-radius: 9px; font-size: 14px; outline: none; transition: border-color 0.15s; color: #0f172a; background: #fff; }
 .form-input:focus { border-color: #4f46e5; box-shadow: 0 0 0 3px rgba(79,70,229,0.1); }
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+/* ── CUSTOM DATE INPUT ── */
+.date-input-wrap { position: relative; }
+.date-display { width:100%; padding:10px 13px; border:1.5px solid #e2e8f0; border-radius:9px; font-size:14px; color:#0f172a; background:#fff; cursor:pointer; user-select:none; display:flex; align-items:center; min-height:42px; transition:border-color 0.15s,background 0.15s; }
+.date-display:hover { border-color:#a5b4fc; }
+.date-display.dp-open { border-color:#4f46e5; box-shadow:0 0 0 3px rgba(79,70,229,0.12); }
+.date-display.dp-filled { border-color:#4f46e5; background:#f5f3ff; }
+.date-placeholder { color:#94a3b8; }
+.cal-popup { position:absolute; top:calc(100% + 6px); left:0; background:#fff; border-radius:12px; box-shadow:0 8px 32px rgba(0,0,0,0.16); padding:14px; z-index:600; width:252px; }
+.cal-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+.cal-header-label { font-size:13px; font-weight:700; color:#0f172a; }
+.cal-nav-btn { background:none; border:none; cursor:pointer; color:#64748b; padding:4px 8px; border-radius:6px; font-size:11px; line-height:1; }
+.cal-nav-btn:hover { background:#f1f5f9; color:#0f172a; }
+.cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:2px; }
+.cal-dow { font-size:10px; font-weight:700; color:#94a3b8; text-align:center; padding:3px 0 6px; }
+.cal-day { aspect-ratio:1; display:flex; align-items:center; justify-content:center; font-size:12px; border-radius:50%; cursor:pointer; color:#374151; transition:background 0.1s; position:relative; font-weight:500; }
+.cal-day:hover:not(.cal-we):not(.cal-sel):not(.cal-paired) { background:#ede9fe; color:#4f46e5; }
+.cal-day.cal-we { color:#d1d5db; cursor:default; }
+.cal-day.cal-sel { background:#4f46e5; color:#fff; font-weight:700; }
+.cal-day.cal-paired { background:#c7d2fe; color:#3730a3; font-weight:700; }
+.cal-day.cal-in-range:not(.cal-sel):not(.cal-paired) { background:#ede9fe; border-radius:0; color:#4338ca; }
+.cal-day.cal-today:not(.cal-sel):not(.cal-paired)::after { content:''; position:absolute; bottom:2px; left:50%; transform:translateX(-50%); width:3px; height:3px; border-radius:50%; background:#4f46e5; }
 .modal-actions { display: flex; gap: 10px; margin-top: 26px; justify-content: flex-end; }
 .btn-cancel { padding: 10px 20px; border-radius: 9px; border: 1.5px solid #e2e8f0; background: #fff; cursor: pointer; font-size: 14px; font-weight: 600; color: #64748b; transition: all 0.15s; }
 .btn-cancel:hover { background: #f8fafc; }
@@ -198,6 +227,19 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Ne
 .loading { display: flex; align-items: center; justify-content: center; min-height: 60vh; flex-direction: column; gap: 16px; color: #94a3b8; }
 .spinner { width: 36px; height: 36px; border: 3px solid #e2e8f0; border-top-color: #4f46e5; border-radius: 50%; animation: spin 0.7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
+.approval-modal-body { padding: 0; }
+.approval-member { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+.approval-avatar { width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 800; color: #fff; flex-shrink: 0; }
+.approval-detail { margin-bottom: 14px; }
+.approval-detail strong { display: block; font-size: 12px; color: #94a3b8; margin-bottom: 5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+.approval-detail { font-size: 14px; color: #0f172a; }
+.modal-actions-approval { display: flex; gap: 10px; margin-top: 24px; }
+.btn-approve { flex: 1; background: #16a34a; color: #fff; padding: 10px 16px; border: none; border-radius: 9px; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.15s; }
+.btn-approve:hover { background: #15803d; }
+.btn-reject { flex: 1; background: #ef4444; color: #fff; padding: 10px 16px; border: none; border-radius: 9px; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.15s; }
+.btn-reject:hover { background: #dc2626; }
+.btn-delete { background: #fef2f2; color: #dc2626; padding: 10px 16px; border: 1.5px solid #fca5a5; border-radius: 9px; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.15s; }
+.btn-delete:hover { background: #fee2e2; }
 @media (max-width: 640px) {
   .main { padding: 16px 12px; }
   .page-header { flex-direction: column; }
@@ -206,8 +248,63 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Ne
   .auth-card { padding: 36px 24px; }
   .auth-name { display: none; }
 }
-</style>
-</head>
+/* HISTORY VIEW */
+.history-wrap { max-width: 860px; margin: 0 auto; padding: 32px 24px; }
+.history-title { font-size: 22px; font-weight: 800; color: #0f172a; margin-bottom: 6px; }
+.history-sub { font-size: 13px; color: #94a3b8; margin-bottom: 28px; }
+.history-log { display: flex; flex-direction: column; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; background: #fff; }
+.history-entry { display: grid; grid-template-columns: 120px 150px 1fr; align-items: baseline; padding: 10px 18px; border-bottom: 1px solid #f1f5f9; font-size: 13px; gap: 16px; transition: background 0.1s; }
+.history-entry:last-child { border-bottom: none; }
+.history-entry:hover { background: #f8fafc; }
+.history-ts { color: #94a3b8; font-size: 11px; white-space: nowrap; line-height: 1.5; }
+.history-ts-date { display: block; font-weight: 600; color: #64748b; font-size: 12px; }
+.history-ts-time { display: block; color: #94a3b8; font-size: 11px; }
+.history-actor { font-weight: 700; color: #4f46e5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.history-line { color: #1e293b; line-height: 1.5; }
+.history-target { font-weight: 700; color: #0369a1; background: #e0f2fe; border-radius: 4px; padding: 0 4px; }
+.history-empty { text-align: center; padding: 60px 20px; color: #94a3b8; font-size: 14px; }
+.nav-tab.history-tab { border-left: 1px solid #e2e8f0; }
+/* hidden-admin delete column */
+.history-log.deletable .history-entry { grid-template-columns: 120px 150px 1fr 28px; align-items: center; }
+.history-delete-btn { background: none; border: none; cursor: pointer; color: #cbd5e1; padding: 0; border-radius: 4px; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 16px; line-height: 1; opacity: 0; transition: opacity 0.15s, color 0.15s, background 0.15s; }
+.history-entry:hover .history-delete-btn { opacity: 1; }
+.history-delete-btn:hover { color: #ef4444; background: #fee2e2; }
+/* login events */
+.history-entry.login-entry { background: #f8fafc; }
+.history-entry.login-entry .history-actor { color: #94a3b8; font-weight: 600; }
+.history-entry.login-entry .history-line { color: #94a3b8; font-style: italic; }
+/* TEAM CARD DROPDOWN */
+.summary-card.team-filter { cursor:pointer; user-select:none; position:relative; flex:0 0 auto; min-width:160px; }
+.summary-card.team-filter:hover { background:#f5f3ff; }
+.summary-card.summary-card-click { cursor:pointer; user-select:none; transition:background .15s,transform .1s; }
+.summary-card.summary-card-click:hover { background:#f8fafc; transform:translateY(-1px); }
+.team-filter-chevron { font-size:22px; color:#64748b; transition:transform .2s; align-self:center; margin-left:6px; flex-shrink:0; line-height:1; }
+.team-filter-chevron.open { transform:rotate(180deg); }
+.team-filter-panel { position:absolute; top:calc(100% + 6px); right:0; background:#fff; border:1px solid #e2e8f0; border-radius:10px; box-shadow:0 8px 28px rgba(0,0,0,0.13); min-width:210px; z-index:500; padding:5px 0; }
+/* VIEW TOGGLE */
+.view-toggle { display:flex; gap:2px; background:#f1f5f9; border-radius:8px; padding:3px; }
+.view-toggle-btn { border:none; background:none; padding:5px 13px; border-radius:6px; font-size:12px; font-weight:600; color:#64748b; cursor:pointer; transition:all .15s; white-space:nowrap; }
+.view-toggle-btn.active { background:#fff; color:#4f46e5; box-shadow:0 1px 4px rgba(0,0,0,.1); }
+.view-toggle-btn:not(.active):hover { color:#0f172a; }
+/* YEAR VIEW */
+.year-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; padding:0 24px 32px; }
+.mini-month { background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:14px; box-shadow:0 1px 4px rgba(0,0,0,.05); }
+.mini-month-name { font-size:12px; font-weight:800; color:#0f172a; text-align:center; margin-bottom:10px; letter-spacing:.02em; }
+.mini-cal { display:grid; grid-template-columns:repeat(7,1fr); gap:1px; }
+.mini-hdr { font-size:9px; font-weight:700; color:#94a3b8; text-align:center; padding:2px 0 4px; }
+.mini-hdr.we { color:#cbd5e1; }
+.mini-cell { position:relative; aspect-ratio:1; display:flex; align-items:center; justify-content:center; border-radius:4px; min-width:0; overflow:visible; }
+.mini-cell.we { background:#f9fafb; }
+.mini-cell-num { font-size:9px; color:#94a3b8; line-height:1; position:relative; z-index:1; pointer-events:none; user-select:none; }
+.mini-cell.we .mini-cell-num { color:#cbd5e1; }
+.mini-cell.yc-clickable { cursor:pointer; }
+.mini-cell.yc-clickable:hover { background:rgba(79,70,229,0.07); }
+.mcd-wrap { position:absolute; top:3px; right:3px; display:flex; gap:1px; align-items:center; pointer-events:none; z-index:3; }
+.mcd { width:5px; height:5px; border-radius:50%; flex-shrink:0; }
+.mcd.approved { background:#16a34a; }
+.mcd.pending  { background:#f59e0b; }
+.mcd.ov { display:flex; align-items:center; justify-content:center; font-size:4px; font-weight:900; color:#fff; line-height:1; }
+</style></head>
 <body>
 <div id="root"></div>
 <script type="text/babel">
@@ -294,10 +391,38 @@ function canApprove(userEmail, memberName) {
 function isAnyAdmin(userEmail) {
   return ['super-admin','mini-admin','hidden-admin'].includes(getUserRole(userEmail));
 }
+/* ─── PERMISSION LOGIC FOR APPROVAL MODAL ─── */
+function getApprovalModalConfig(userEmail, vacation, team) {
+  const role = getUserRole(userEmail);
+  const isSuperAdmin = role === 'super-admin' || role === 'hidden-admin';
+  const isMiniAdmin = role === 'mini-admin';
+  const teamToSearch = (team && team.length) ? team : DEFAULT_TEAM;
+  const isOwnEntry = vacation.member === (teamToSearch.find(m => m.email === userEmail)?.name || '');
+
+  if (isSuperAdmin) {
+    return { showApprove: true, showReject: true, showDelete: true, canApprove: true, canReject: true, canDelete: true };
+  }
+
+  if (isMiniAdmin) {
+    if (vacation.member === TIAGO_NAME) {
+      return { showApprove: false, showReject: false, showDelete: true, canApprove: false, canReject: false, canDelete: true };
+    }
+    if (isOwnEntry) {
+      return { showApprove: true, showReject: true, showDelete: true, canApprove: true, canReject: true, canDelete: true };
+    }
+    return { showApprove: true, showReject: true, showDelete: true, canApprove: true, canReject: true, canDelete: true };
+  }
+
+  if (isOwnEntry) {
+    return { showApprove: false, showReject: false, showDelete: true, canApprove: false, canReject: false, canDelete: true };
+  }
+
+  return { showApprove: false, showReject: false, showDelete: false, canApprove: false, canReject: false, canDelete: false };
+}
 /* ─── MISC HELPERS ─── */
 function pad2(n)   { return String(n).padStart(2,"0"); }
 function ds(y,m,d) { return `${y}-${pad2(m+1)}-${pad2(d)}`; }
-function parse(s)  { if(!s||typeof s!=="string") return new Date(NaN); const [y,m,d]=s.split("-").map(Number); return new Date(y,m-1,d); }
+function parse(s)  { const [y,m,d]=s.split("-").map(Number); return new Date(y,m-1,d); }
 function dim(y,m)  { return new Date(y,m+1,0).getDate(); }
 function today()   { const n=new Date(); return ds(n.getFullYear(),n.getMonth(),n.getDate()); }
 function uid()     { return Date.now().toString(36)+Math.random().toString(36).slice(2); }
@@ -311,7 +436,6 @@ function getNextColor(team) {
 }
 function expand(s,e) {
   const days=[],cur=parse(s),stop=parse(e);
-  if(isNaN(cur)||isNaN(stop)) return days;
   while(cur<=stop){ const d=new Date(cur); days.push(ds(d.getFullYear(),d.getMonth(),d.getDate())); cur.setDate(cur.getDate()+1); }
   return days;
 }
@@ -336,47 +460,47 @@ function _sendEmail(toEmail, toName, subject, message) {
 function notifyNewRequest(vacation) {
   if (!EMAILJS_ON) return;
   const { member, startDate, endDate, note } = vacation;
-  const periodo = fmt(startDate, endDate);
-  const dias    = wdays(startDate, endDate);
+  // Only notify Cátia for regular (non-admin) member requests
+  if (member === TIAGO_NAME || member === CATIA_NAME) return;
+  const periodo   = fmt(startDate, endDate);
+  const dias      = wdays(startDate, endDate);
   const notaLinha = note ? `\nNota: ${note}` : '';
-  const msg = `${member} submeteu um pedido de férias que necessita de aprovação.\n\nPeríodo: ${periodo}\nDias úteis: ${dias}${notaLinha}`;
+  const link      = `\n\n🔗 ${window.location.origin}`;
+  const msg     = `${member} submeteu um pedido de férias que necessita de aprovação.\n\nPeríodo: ${periodo}\nDias úteis: ${dias}${notaLinha}${link}`;
   const subject = `🌴 Novo pedido de férias — ${member}`;
-  _sendEmail(SUPER_ADMIN_EMAIL, 'Tiago', subject, msg);
-  if (member !== CATIA_NAME) {
-    _sendEmail(MINI_ADMIN_EMAIL, 'Cátia', subject, msg);
-  }
+  _sendEmail(MINI_ADMIN_EMAIL, 'Cátia', subject, msg);
 }
 function notifyApproval(vacation, approverEmail, team) {
   if (!EMAILJS_ON) return;
   const { member, startDate, endDate } = vacation;
-  const periodo      = fmt(startDate, endDate);
-  const dias         = wdays(startDate, endDate);
-  const approverRole = getUserRole(approverEmail);
-  const memberData   = team.find(m => m.name === member);
-  if (approverRole === 'mini-admin') {
+  const periodo    = fmt(startDate, endDate);
+  const dias       = wdays(startDate, endDate);
+  const memberData = team.find(m => m.name === member);
+  const link       = `\n\n🔗 ${window.location.origin}`;
+  // Notify the member — skip Tiago (auto-approved, no email needed), skip self-approval
+  if (member !== TIAGO_NAME && memberData?.email && approverEmail !== memberData.email) {
+    const firstName = member.split(' ')[0];
     _sendEmail(
-      SUPER_ADMIN_EMAIL, 'Tiago',
-      `✅ Cátia aprovou — ${member}`,
-      `A Cátia aprovou o pedido de férias de ${member}.\n\nPeríodo: ${periodo}\nDias úteis: ${dias}`
-    );
-  } else if (approverRole === 'super-admin' && member !== CATIA_NAME) {
-    _sendEmail(
-      MINI_ADMIN_EMAIL, 'Cátia',
-      `✅ Tiago aprovou — ${member}`,
-      `O Tiago aprovou o pedido de férias de ${member}.\n\nPeríodo: ${periodo}\nDias úteis: ${dias}`
+      memberData.email, firstName,
+      `🎉 Férias aprovadas! ${periodo}`,
+      `Olá ${firstName}!\n\nO teu pedido de férias foi aprovado! 🎉\n\nPeríodo: ${periodo}\nDias úteis: ${dias}\n\nBoas férias! 🌴${link}`
     );
   }
+}
+function notifyRejection(vacation, team) {
+  if (!EMAILJS_ON) return;
+  const { member, startDate, endDate } = vacation;
+  const periodo    = fmt(startDate, endDate);
+  const dias       = wdays(startDate, endDate);
+  const memberData = team.find(m => m.name === member);
+  const link       = `\n\n🔗 ${window.location.origin}`;
   if (member !== TIAGO_NAME && memberData?.email) {
     const firstName = member.split(' ')[0];
-    let subject, msg;
-    if (member === CATIA_NAME && approverRole === 'super-admin') {
-      subject = `🎉 As tuas férias foram aprovadas! ${periodo}`;
-      msg = `Olá Cátia!\n\nO Tiago aprovou o teu pedido de férias! 🎉\n\nPeríodo: ${periodo}\nDias úteis: ${dias}\n\nBoas férias! 🌴`;
-    } else {
-      subject = `🎉 Férias aprovadas! ${periodo}`;
-      msg = `Olá ${firstName}!\n\nO teu pedido de férias foi aprovado! 🎉\n\nPeríodo: ${periodo}\nDias úteis: ${dias}\n\nBoas férias! 🌴`;
-    }
-    _sendEmail(memberData.email, firstName, subject, msg);
+    _sendEmail(
+      memberData.email, firstName,
+      `❌ Pedido de férias recusado — ${periodo}`,
+      `Olá ${firstName}!\n\nO teu pedido de férias foi recusado.\n\nPeríodo: ${periodo}\nDias úteis: ${dias}\n\nSe tiveres dúvidas, fala com o teu gestor.${link}`
+    );
   }
 }
 /* ─── SETUP SCREEN ─── */
@@ -451,21 +575,175 @@ function AuthUserPill({ user }) {
     </div>
   );
 }
+/* ─── QUICK APPROVAL MODAL ─── */
+function QuickApprovalModal({ vacation, team, userEmail, onApprove, onReject, onDelete, onClose }) {
+  if (!vacation) return null;
+  const member = team.find(m => m.name === vacation.member) || { name: vacation.member };
+  const config = getApprovalModalConfig(userEmail, vacation, team);
+  const wd = wdays(vacation.startDate, vacation.endDate);
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" onClick={e => e.stopPropagation()}>
+        <div className="modal-title">
+          Pedido de Férias
+          <button className="modal-close" onClick={onClose}>×</button>
+        </div>
+        <div className="approval-modal-body">
+          <div className="approval-member" style={{marginBottom:20}}>
+            <div className="approval-avatar" style={{background:member.color}}>{toInitials(member.name)}</div>
+            <div>
+              <div style={{fontWeight:700,color:"#0f172a"}}>{member.name}</div>
+              {member.email && <div style={{fontSize:12,color:"#94a3b8"}}>{member.email}</div>}
+            </div>
+          </div>
+          <div className="approval-detail">
+            <strong>Período</strong>
+            {fmt(vacation.startDate, vacation.endDate)}
+          </div>
+          <div className="approval-detail">
+            <strong>Dias úteis</strong>
+            {wd} {wd===1?"dia":"dias"}
+          </div>
+          {vacation.note && <div className="approval-detail">
+            <strong>Nota</strong>
+            {vacation.note}
+          </div>}
+        </div>
+        <div className="modal-actions-approval">
+          {config.showDelete && <button className="btn-delete" onClick={() => onDelete(vacation.id)}>🗑️ Eliminar</button>}
+          {config.showReject && <button className="btn-reject" onClick={() => onReject(vacation)}>❌ Rejeitar</button>}
+          {config.showApprove && <button className="btn-approve" onClick={() => onApprove(vacation)}>✅ Aprovar</button>}
+          {!config.showApprove && !config.showReject && !config.showDelete && (
+            <button className="btn-cancel" onClick={onClose} style={{width:"100%"}}>Fechar</button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+/* ─── HISTORY VIEW ─── */
+function HistoryView({ db, userEmail, team }) {
+  const [entries, setEntries] = React.useState(null);
+  const isHiddenAdmin = getUserRole(userEmail) === 'hidden-admin';
+  const hiddenAdminName = (team || []).find(m => m.email === HIDDEN_ADMIN_EMAIL)?.name || '';
+  React.useEffect(() => {
+    const ref = db.ref('history').orderByChild('ts').limitToLast(300);
+    ref.on('value', snap => {
+      const val = snap.val();
+      if (!val) { setEntries([]); return; }
+      let list = Object.values(val).sort((a, b) => b.ts - a.ts);
+      if (!isHiddenAdmin && hiddenAdminName) list = list.filter(e => e.actor !== hiddenAdminName);
+      setEntries(list);
+    });
+    return () => ref.off();
+  }, [isHiddenAdmin, hiddenAdminName]);
+  const deleteEntry = id => db.ref(`history/${id}`).remove();
+  const fmtDate = ts => new Date(ts).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
+  const fmtTime = ts => new Date(ts).toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
+  const renderAction = (action, target) => {
+    if (!target || !action.includes(target)) return action;
+    const parts = action.split(target);
+    return parts.map((part, i) =>
+      i < parts.length - 1
+        ? <React.Fragment key={i}>{part}<span className="history-target">{target}</span></React.Fragment>
+        : part
+    );
+  };
+  return (
+    <div className="history-wrap">
+      <div className="history-title">📋 Activity Log</div>
+      <div className="history-sub">All actions recorded in real time. Visible to admins only.</div>
+      {entries === null && <div className="history-empty">Loading…</div>}
+      {entries !== null && entries.length === 0 && <div className="history-empty">No activity recorded yet.</div>}
+      {entries !== null && entries.length > 0 && (
+        <div className={`history-log${isHiddenAdmin ? ' deletable' : ''}`}>
+          {entries.map(e => (
+            <div key={e.id} className={`history-entry${e.action === 'logged in' ? ' login-entry' : ''}`}>
+              <div className="history-ts">
+                <span className="history-ts-date">{fmtDate(e.ts)}</span>
+                <span className="history-ts-time">{fmtTime(e.ts)}</span>
+              </div>
+              <div className="history-actor">{e.actor}</div>
+              <div className="history-line">{renderAction(e.action, e.target)}</div>
+              {isHiddenAdmin && (
+                <button className="history-delete-btn" onClick={() => deleteEntry(e.id)} title="Remove from log">×</button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+/* ─── PEOPLE DROPDOWN ─── */
+function PeopleDropdown({ team, selected, onToggle, onSelectAll, onViewPerson }) {
+  const [open, setOpen] = React.useState(false);
+  const ref = React.useRef(null);
+  React.useEffect(() => {
+    const handler = e => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+  const allSelected = selected.length === team.length;
+  const label = allSelected
+    ? 'Everyone'
+    : selected.length === 1
+      ? team.find(m => m.name === selected[0])?.name.split(' ')[0] || 'Person'
+      : `${selected.length} people`;
+  return (
+    <div className="people-dd-wrap" ref={ref}>
+      <div className={`nav-tab ${open ? 'active' : ''}`} onClick={() => setOpen(o => !o)}>
+        <span>👤</span> {label}
+        {!allSelected && <span className="people-dd-count">{selected.length}/{team.length}</span>}
+        <span className="people-dd-caret">{open ? '▲' : '▼'}</span>
+      </div>
+      {open && (
+        <div className="people-dd-panel">
+          <div className="people-dd-item" onClick={() => onSelectAll(!allSelected)}>
+            <input type="checkbox" checked={allSelected} onChange={() => onSelectAll(!allSelected)} onClick={e => e.stopPropagation()} />
+            <span style={{fontWeight:700, color:'#0f172a'}}>Everyone</span>
+          </div>
+          <div className="people-dd-sep"/>
+          {team.map(m => (
+            <div key={m.id} className="people-dd-item">
+              <input type="checkbox" checked={selected.includes(m.name)} onChange={() => onToggle(m.name)} onClick={e => e.stopPropagation()} />
+              <span className="nav-dot" style={{background: m.color}}/>
+              <span className="people-dd-item-name" onClick={() => { onViewPerson(m.name); setOpen(false); }}>{m.name}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 /* ─── APP ─── */
 function App() {
   if (!IS_CONFIGURED) return <SetupScreen />;
 
   // ── All hooks MUST be declared before any conditional early returns ──
-  const [authUser,  setAuthUser]  = useState(undefined);
-  const [team,      setTeam]      = useState(null);
-  const [vacations, setVacations] = useState(null);
-  const [online,    setOnline]    = useState(false);
-  const [view,      setView]      = useState("team");
-  const [year,      setYear]      = useState(2026);
-  const [month,     setMonth]     = useState(()=>{ const n=new Date(); return n.getFullYear()===2026?n.getMonth():0; });
-  const [modal,     setModal]     = useState(null);
+  const [authUser,       setAuthUser]       = useState(undefined);
+  const [team,           setTeam]           = useState(null);
+  const [vacations,      setVacations]      = useState(null);
+  const [online,         setOnline]         = useState(false);
+  const [view,           setView]           = useState("team");
+  const [year,           setYear]           = useState(2026);
+  const [month,          setMonth]          = useState(()=>{ const n=new Date(); return n.getFullYear()===2026?n.getMonth():0; });
+  const [modal,          setModal]          = useState(null);
+  const [approvalModal,  setApprovalModal]  = useState(null);
+  const pendingNotifs = useRef({});
 
-  useEffect(() => { const u = auth.onAuthStateChanged(user => setAuthUser(user||null)); return u; }, []);
+  useEffect(() => {
+    const u = auth.onAuthStateChanged(user => {
+      setAuthUser(user || null);
+      if (user) {
+        const id = uid();
+        const actor = user.displayName || user.email || 'Unknown';
+        db.ref(`history/${id}`).set({ id, actor, action: 'logged in', target: null, ts: Date.now() });
+      }
+    });
+    return u;
+  }, []);
   useEffect(() => {
     if (!authUser) return;
     const teamRef = db.ref("team");
@@ -482,7 +760,7 @@ function App() {
     db.ref("vacations").on("value", vH);
     return () => { teamRef.off("value",tH); db.ref("vacations").off("value",vH); };
   }, [authUser]);
-  useEffect(() => { const h=e=>{if(e.key==="Escape")setModal(null);}; window.addEventListener("keydown",h); return()=>window.removeEventListener("keydown",h); }, []);
+  useEffect(() => { const h=e=>{if(e.key==="Escape"){setModal(null);setApprovalModal(null);}}; window.addEventListener("keydown",h); return()=>window.removeEventListener("keydown",h); }, []);
 
   // Compute role + pendingCount HERE — before any early returns — so hook call order is always the same
   const role = authUser ? getUserRole(authUser.email) : 'member';
@@ -507,78 +785,119 @@ function App() {
 
   const prevMonth = ()=>{ if(month===0){setYear(y=>y-1);setMonth(11);}else setMonth(m=>m-1); };
   const nextMonth = ()=>{ if(month===11){setYear(y=>y+1);setMonth(0);}else setMonth(m=>m+1); };
+  const prevYear  = () => setYear(y => y - 1);
+  const nextYear  = () => setYear(y => y + 1);
+  const goToday   = () => { const n = new Date(); setYear(n.getFullYear()); setMonth(n.getMonth()); };
+  const logAction = (action, target) => {
+    const actor = team?.find(m => m.email === authUser?.email)?.name || authUser?.displayName || authUser?.email || 'Unknown';
+    const id = uid();
+    db.ref(`history/${id}`).set({ id, actor, action, target: target || null, ts: Date.now() });
+  };
   const saveVacation = (data) => {
     let d = {...data};
     if (d.member === TIAGO_NAME && modal.mode === 'add') d.status = 'approved';
     if (modal.mode === "edit") {
       db.ref(`vacations/${d.id}`).set(d);
+      logAction(`edited vacation for ${d.member} (${fmt(d.startDate, d.endDate)})`, d.member);
     } else {
       const v = {...d, id: uid()};
       db.ref(`vacations/${v.id}`).set(v);
-      if (v.member !== TIAGO_NAME) notifyNewRequest(v);
+      if (v.member !== TIAGO_NAME && v.member !== CATIA_NAME) {
+        const tId = setTimeout(() => {
+          notifyNewRequest(v);
+          delete pendingNotifs.current[v.id];
+        }, 60000);
+        pendingNotifs.current[v.id] = tId;
+      }
+      logAction(`added a vacation for ${v.member} (${fmt(v.startDate, v.endDate)})`, v.member);
     }
     setModal(null);
   };
-  const deleteVacation = (id) => { if(window.confirm("Eliminar este registo de férias?")) db.ref(`vacations/${id}`).remove(); };
+  const deleteVacation = (id) => {
+    if (window.confirm("Eliminar este registo de férias?")) {
+      if (pendingNotifs.current[id]) { clearTimeout(pendingNotifs.current[id]); delete pendingNotifs.current[id]; }
+      const v = (vacations||[]).find(x => x.id === id);
+      db.ref(`vacations/${id}`).remove();
+      if (v) logAction(`deleted ${v.member}'s vacation (${fmt(v.startDate, v.endDate)})`, v.member);
+    }
+    setApprovalModal(null);
+  };
+  const approveVacation = (vacation) => {
+    const config = getApprovalModalConfig(authUser.email, vacation, team);
+    if (!config.canApprove) return;
+    db.ref(`vacations/${vacation.id}/status`).set('approved');
+    notifyApproval(vacation, authUser.email, team);
+    logAction(`approved ${vacation.member}'s vacation (${fmt(vacation.startDate, vacation.endDate)})`, vacation.member);
+    setApprovalModal(null);
+  };
+  const rejectVacation = (vacation) => {
+    const config = getApprovalModalConfig(authUser.email, vacation, team);
+    if (!config.canReject) return;
+    db.ref(`vacations/${vacation.id}/status`).set('rejected');
+    notifyRejection(vacation, team);
+    logAction(`rejected ${vacation.member}'s vacation (${fmt(vacation.startDate, vacation.endDate)})`, vacation.member);
+    setApprovalModal(null);
+  };
   const cycleStatus = (id) => {
     const v = vacations.find(x=>x.id===id);
     if (!v || !canApprove(authUser.email, v.member)) return;
     const newStatus = NEXT_STATUS[v.status];
     db.ref(`vacations/${id}/status`).set(newStatus);
     if (newStatus === 'approved') notifyApproval(v, authUser.email, team);
+    if (newStatus === 'rejected') notifyRejection(v, team);
+    logAction(`changed ${v.member}'s vacation status to ${newStatus} (${fmt(v.startDate, v.endDate)})`, v.member);
   };
-  const approveVacation = (id) => {
-    const v = vacations.find(x=>x.id===id);
-    if (!v || !canApprove(authUser.email, v.member)) return;
-    db.ref(`vacations/${id}/status`).set('approved');
-    notifyApproval(v, authUser.email, team);
+  const addMember = (name,color,email) => {
+    const id=uid();
+    db.ref(`team/${id}`).set({id,name:name.trim(),color,initials:toInitials(name),email:email.trim().toLowerCase()});
+    logAction(`added team member ${name.trim()}`, name.trim());
   };
-  const rejectVacation = (id) => {
-    const v = vacations.find(x=>x.id===id);
-    if (!v || !canApprove(authUser.email, v.member)) return;
-    db.ref(`vacations/${id}/status`).set('rejected');
-  };
-  const addMember         = (name,color,email) => { const id=uid(); db.ref(`team/${id}`).set({id,name:name.trim(),color,initials:toInitials(name),email:email.trim().toLowerCase()}); };
-  const removeMember      = (member) => {
+  const removeMember = (member) => {
     const vc=(vacations||[]).filter(v=>v.member===member.name).length;
     const msg=vc>0?`Remover ${member.name}? Tem ${vc} registo${vc!==1?"s":""} de férias.\n\nOK = remover membro E todos os seus registos.\nCancelar = abortar.`:`Remover ${member.name} da equipa?`;
     if(!window.confirm(msg)) return;
     db.ref(`team/${member.id}`).remove();
     if(vc>0)(vacations||[]).filter(v=>v.member===member.name).forEach(v=>db.ref(`vacations/${v.id}`).remove());
     if(view===member.name) setView("team");
+    logAction(`removed team member ${member.name}`, member.name);
   };
-  const updateMemberColor = (member,color) => db.ref(`team/${member.id}/color`).set(color);
-  const updateMemberEmail = (member,email) => db.ref(`team/${member.id}/email`).set(email.trim().toLowerCase());
-  const openAdd  = (def) => setModal({mode:"add",  userEmail:authUser.email, defaultMember:def||(view!=="team"&&view!=="manage"?view:(team&&team[0]?.name)||"")});
+  const updateMemberColor = (member,color) => { db.ref(`team/${member.id}/color`).set(color); logAction(`updated ${member.name}'s colour`, member.name); };
+  const updateMemberEmail = (member,email) => { db.ref(`team/${member.id}/email`).set(email.trim().toLowerCase()); logAction(`updated ${member.name}'s email`, member.name); };
+
+  const openAdd  = (def, startDate) => setModal({mode:"add", userEmail:authUser.email, defaultMember:def||(view!=="team"&&view!=="manage"?view:(team&&team[0]?.name)||""), entry: startDate ? {startDate, endDate:""} : null});
   const openEdit = (entry) => setModal({mode:"edit", userEmail:authUser.email, entry});
   const currentMember = team?.find(m=>m.name===view);
+
+  const handleVacationClick = (vacation) => {
+    const config = getApprovalModalConfig(authUser.email, vacation, team);
+    if (config.showApprove || config.showReject || config.showDelete) {
+      setApprovalModal(vacation);
+    }
+  };
+
   return (
     <div>
       <nav className="nav">
         <div className="nav-logo">🌴 <span className="accent">Vacation</span> Tracker<span className={`conn-dot ${online?"online":"offline"}`} title={online?"Sincronizado":"A reconectar…"} style={{marginLeft:4}}/></div>
         <div className="nav-divider"/>
-        <div className={`nav-tab ${view==="team"?"active":""}`} onClick={()=>setView("team")}>
-          <span>👥</span> Team
+        <div className={`nav-tab ${["team","pending-list","approved-list","out-today"].includes(view)?"active":""}`} onClick={()=>setView("team")}>
+          <span>📅</span> Calendar
         </div>
-        {pendingCount>0 && <div className={`nav-tab ${view==="pending"?"active":""}`} onClick={()=>setView("pending")} style={{color:"#dc2626"}}>
-          <span className="pending-badge" style={{position:"static",fontSize:11}}>{pendingCount}</span> Pendentes
-        </div>}
-        <div className="nav-divider"/>
-        {team.map(m=>(
-          <div key={m.id} className={`nav-tab ${view===m.name?"active":""}`} onClick={()=>setView(m.name)}>
-            <span className="nav-dot" style={{background:m.color}}/>{m.name.split(" ")[0]}
-          </div>
-        ))}
-        <div className={`nav-tab manage-tab ${view==="manage"?"active":""}`} onClick={()=>setView("manage")}>⚙️ Members</div>
+        {isAnyAdmin(authUser.email) && <div className={`nav-tab manage-tab ${view==="manage"?"active":""}`} onClick={()=>setView("manage")}>⚙️ Members</div>}
+        {isAnyAdmin(authUser.email) && <div className={`nav-tab history-tab ${view==="history"?"active":""}`} onClick={()=>setView("history")}>📋 History</div>}
         <AuthUserPill user={authUser}/>
       </nav>
       <div className="main">
-        {view==="team"    && <TeamView vacations={vacations} team={team} year={year} month={month} onPrev={prevMonth} onNext={nextMonth} onPersonClick={n=>setView(n)} onAdd={()=>openAdd(null)} userEmail={authUser.email} onCycleStatus={cycleStatus}/>}
-        {view==="manage"  && <ManageTeamView team={team} vacations={vacations} onAdd={addMember} onRemove={removeMember} onColorChange={updateMemberColor} onEmailChange={updateMemberEmail} currentUserEmail={authUser.email}/>}
-        {view==="pending" && <PendingListView vacations={vacations} team={team} userEmail={authUser.email} onApprove={approveVacation} onReject={rejectVacation} onDelete={deleteVacation} onBack={()=>setView("team")}/>}
-        {view!=="team"&&view!=="manage"&&view!=="pending"&&currentMember && <PersonView member={currentMember} vacations={vacations.filter(v=>v.member===currentMember.name)} onAdd={()=>openAdd(currentMember.name)} onEdit={openEdit} onDelete={deleteVacation} onCycleStatus={cycleStatus} userEmail={authUser.email}/>}
+        {view==="team"          && <TeamView vacations={vacations} team={team} year={year} month={month} onPrev={prevMonth} onNext={nextMonth} onPersonClick={n=>setView(n)} onAdd={()=>openAdd(null)} onAddWithDate={(member,dateStr)=>openAdd(member,dateStr)} userEmail={authUser.email} onCycleStatus={cycleStatus} onVacationClick={handleVacationClick} onSetMonth={setMonth} onPrevYear={prevYear} onNextYear={nextYear} onGoToday={goToday} onFilterView={setView}/>}
+        {view==="pending-list"  && <FilteredVacationsView title="Férias Pendentes" icon="⏳" vacations={vacations.filter(v=>v.status==='pending')} team={team} onDelete={deleteVacation} onCycleStatus={cycleStatus} onVacationClick={handleVacationClick} userEmail={authUser.email} onBack={()=>setView("team")}/>}
+        {view==="approved-list" && <FilteredVacationsView title="Férias Aprovadas" icon="✅" vacations={vacations.filter(v=>v.status==='approved')} team={team} onDelete={deleteVacation} onCycleStatus={cycleStatus} onVacationClick={handleVacationClick} userEmail={authUser.email} onBack={()=>setView("team")}/>}
+        {view==="out-today"     && <FilteredVacationsView title="Ausentes Hoje" icon="👤" vacations={vacations.filter(v=>v.status!=='rejected'&&expand(v.startDate,v.endDate).includes(today()))} team={team} onDelete={deleteVacation} onCycleStatus={cycleStatus} onVacationClick={handleVacationClick} userEmail={authUser.email} onBack={()=>setView("team")}/>}
+        {view==="manage"        && <ManageTeamView team={team} vacations={vacations} onAdd={addMember} onRemove={removeMember} onColorChange={updateMemberColor} onEmailChange={updateMemberEmail} currentUserEmail={authUser.email}/>}
+        {view==="history"       && (isAnyAdmin(authUser.email) ? <HistoryView db={db} userEmail={authUser.email} team={team}/> : (setView("team"),null))}
+        {!["team","pending-list","approved-list","out-today","manage","history"].includes(view)&&currentMember && <PersonView member={currentMember} vacations={vacations.filter(v=>v.member===currentMember.name)} onAdd={()=>openAdd(currentMember.name)} onEdit={openEdit} onDelete={deleteVacation} onCycleStatus={cycleStatus} userEmail={authUser.email} onVacationClick={handleVacationClick}/>}
       </div>
       {modal && <VacationModal mode={modal.mode} defaultMember={modal.defaultMember} entry={modal.entry} team={team} userEmail={modal.userEmail} onSave={saveVacation} onClose={()=>setModal(null)}/>}
+      {approvalModal && <QuickApprovalModal vacation={approvalModal} team={team} userEmail={authUser.email} onApprove={approveVacation} onReject={rejectVacation} onDelete={deleteVacation} onClose={()=>setApprovalModal(null)}/>}
     </div>
   );
 }
@@ -697,77 +1016,153 @@ function AddMemberModal({ team, onAdd, onClose }) {
     </div>
   );
 }
-/* ─── PENDING LIST VIEW ─── */
-function PendingListView({ vacations, team, userEmail, onApprove, onReject, onDelete, onBack }) {
-  const pending = [...vacations]
-    .filter(v => v.status === "pending" && canApprove(userEmail, v.member))
-    .sort((a, b) => a.startDate.localeCompare(b.startDate));
+/* ─── TEAM VIEW ─── */
+/* ─── YEAR VIEW ─── */
+function YearView({ vacations, team, year, onMonthClick, onAddForDate }) {
+  const dayMap = useMemo(() => {
+    const m = {};
+    vacations.forEach(v => {
+      if (v.status === 'rejected') return;
+      const member = team.find(t => t.name === v.member);
+      expand(v.startDate, v.endDate).forEach(d => {
+        if (!m[d]) m[d] = [];
+        m[d].push({ color: member?.color || '#94a3b8', status: v.status });
+      });
+    });
+    return m;
+  }, [vacations, team]);
+
   return (
-    <div>
-      <div className="pending-view-header">
-        <button className="pending-view-back" onClick={onBack}>← Voltar</button>
-        <div>
-          <div className="pending-view-title">⏳ Férias Pendentes</div>
-          <div className="pending-view-sub">{pending.length} registo{pending.length !== 1 ? "s" : ""}</div>
-        </div>
-      </div>
-      {pending.length === 0 ? (
-        <div className="empty"><div className="empty-icon">🎉</div><div className="empty-title">Nenhum pedido pendente</div></div>
-      ) : (
-        <div className="vac-list">
-          {pending.map(v => {
-            const m = team.find(x => x.name === v.member) || { name: v.member, color: "#94a3b8", initials: v.member[0] };
-            const wd = wdays(v.startDate, v.endDate);
-            const cd = expand(v.startDate, v.endDate).length;
-            return (
-              <div key={v.id} className="vac-card pending">
-                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
-                  <div className="initials" style={{ background: m.color, width: 28, height: 28, fontSize: 11 }}>{m.initials}</div>
-                  <span style={{ fontWeight: 700, fontSize: 14, color: "#0f172a" }}>{v.member}</span>
-                </div>
-                <div className="vac-card-dates">
-                  <div className="vac-date-range">{fmt(v.startDate, v.endDate)}</div>
-                  <div className="vac-meta">{wd} dia{wd !== 1 ? "s" : ""} útei{wd !== 1 ? "s" : "l"}{cd !== wd ? ` (${cd} dias corridos)` : ""}</div>
-                  {v.note && <div className="vac-note">💬 {v.note}</div>}
-                </div>
-                <div className="vac-card-actions">
-                  <button className="btn-approve" onClick={() => onApprove(v.id)}>✅ Aprovar</button>
-                  <button className="btn-reject"  onClick={() => onReject(v.id)}>❌ Rejeitar</button>
-                  <button className="btn-danger-ghost" onClick={() => onDelete(v.id)}>🗑️</button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+    <div className="year-grid">
+      {Array.from({ length: 12 }, (_, mi) => {
+        const numDays = dim(year, mi);
+        const firstDow = (parse(ds(year, mi, 1)).getDay() + 6) % 7; // Mon=0
+        return (
+          <div key={mi} className="mini-month">
+            <div className="mini-month-name">{MONTHS_EN[mi]}</div>
+            <div className="mini-cal">
+              {['M','T','W','T','F','S','S'].map((h,i) => (
+                <div key={i} className={`mini-hdr${i>=5?' we':''}`}>{h}</div>
+              ))}
+              {Array.from({ length: firstDow }, (_, i) => <div key={`e${i}`}/>)}
+              {Array.from({ length: numDays }, (_, i) => {
+                const d = i + 1;
+                const dateStr = ds(year, mi, d);
+                const dow = parse(dateStr).getDay();
+                const isWe = dow === 0 || dow === 6;
+                const raw = dayMap[dateStr] || [];
+                // sort: approved first, then pending; rejected already excluded
+                const sorted = [
+                  ...raw.filter(b => b.status === 'approved'),
+                  ...raw.filter(b => b.status === 'pending'),
+                ];
+                const total = sorted.length;
+                const show  = Math.min(total, 3);
+                const dots  = total > 0 ? (
+                  <div className="mcd-wrap">
+                    {Array.from({length: show}, (_, i) => {
+                      const isOverflow = total > 3 && i === 2;
+                      return (
+                        <span key={i} className={`mcd ${sorted[i].status}${isOverflow ? ' ov' : ''}`}>
+                          {isOverflow ? '+' : ''}
+                        </span>
+                      );
+                    })}
+                  </div>
+                ) : null;
+                return (
+                  <div key={d} className={`mini-cell${isWe ? ' we' : ''} yc-clickable`}
+                    onClick={()=>onAddForDate(dateStr)}>
+                    <span className="mini-cell-num">{d}</span>
+                    {dots}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
-/* ─── TEAM VIEW ─── */
-function TeamView({ vacations, team, year, month, onPrev, onNext, onPersonClick, onAdd, userEmail, onCycleStatus }) {
+function TeamView({ vacations, team, year, month, onPrev, onNext, onPersonClick, onAdd, onAddWithDate, userEmail, onCycleStatus, onVacationClick, onSetMonth, onPrevYear, onNextYear, onGoToday, onFilterView }) {
+  const [yearMode, setYearMode] = React.useState(false);
+  const goToMonth = (mi) => { onSetMonth(mi); setYearMode(false); };
+
+  // ── Member filter (lives here now) ──
+  const [selectedMembers, setSelectedMembers] = React.useState(null);
+  const [ddOpen, setDdOpen] = React.useState(false);
+  const ddRef = React.useRef(null);
+  React.useEffect(() => {
+    const handler = e => { if (ddRef.current && !ddRef.current.contains(e.target)) setDdOpen(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+  React.useEffect(() => {
+    if (!team) return;
+    setSelectedMembers(prev => {
+      if (prev === null) return team.map(m => m.name);
+      const names = team.map(m => m.name);
+      const kept = prev.filter(n => names.includes(n));
+      const added = names.filter(n => !prev.includes(n));
+      return [...kept, ...added];
+    });
+  }, [team]);
+  const sel = selectedMembers || team.map(m => m.name);
+  const allSel = sel.length === team.length;
+  const toggleMember = name => setSelectedMembers(prev => (prev||team.map(m=>m.name)).includes(name) ? (prev||team.map(m=>m.name)).filter(n=>n!==name) : [...(prev||team.map(m=>m.name)), name]);
+  const selectAll = all => setSelectedMembers(all ? team.map(m => m.name) : []);
+  const visibleTeam = team.filter(m => sel.includes(m.name));
+
   const now=today(), numDays=dim(year,month);
-  const dayMap=useMemo(()=>{ const m={}; vacations.filter(v=>v.startDate&&v.endDate).forEach(v=>expand(v.startDate,v.endDate).forEach(d=>{const k=`${d}__${v.member}`;if(!m[k])m[k]=v;})); return m; },[vacations]);
+  const dayMap=useMemo(()=>{ const m={}; vacations.forEach(v=>expand(v.startDate,v.endDate).forEach(d=>{const k=`${d}__${v.member}`;if(!m[k])m[k]=v;})); return m; },[vacations]);
   const days=useMemo(()=>Array.from({length:numDays},(_,i)=>{const d=i+1,s=ds(year,month,d),dow=parse(s).getDay();return{d,s,dow,isWeekend:dow===0||dow===6,isToday:s===now};}),[year,month,numDays,now]);
-  const offToday=team.filter(m=>dayMap[`${now}__${m.name}`]);
+  const offToday=visibleTeam.filter(m=>dayMap[`${now}__${m.name}`]);
   const totAppr=vacations.filter(v=>v.status==="approved").reduce((s,v)=>s+wdays(v.startDate,v.endDate),0);
   const totPend=vacations.filter(v=>v.status==="pending" ).reduce((s,v)=>s+wdays(v.startDate,v.endDate),0);
   return (
     <div>
       <div className="summary-strip">
-        <div className="summary-card"><div className="summary-icon">🏖️</div><div><div className="summary-val" style={{color:"#4f46e5"}}>{vacations.length}</div><div className="summary-lbl">Total</div></div></div>
-        <div className="summary-card"><div className="summary-icon">✅</div><div><div className="summary-val" style={{color:"#16a34a"}}>{totAppr}</div><div className="summary-lbl">Dias aprovados</div></div></div>
-        <div className="summary-card"><div className="summary-icon">⏳</div><div><div className="summary-val" style={{color:"#d97706"}}>{totPend}</div><div className="summary-lbl">Dias pendentes</div></div></div>
-        <div className="summary-card"><div className="summary-icon">👤</div><div><div className="summary-val" style={{color:offToday.length>0?"#dc2626":"#94a3b8"}}>{offToday.length}</div><div className="summary-lbl">Ausentes hoje</div></div></div>
-        <div className="summary-card"><div className="summary-icon">🧑‍🤝‍🧑</div><div><div className="summary-val" style={{color:"#4f46e5"}}>{team.length}</div><div className="summary-lbl">Equipa</div></div></div>
+        <div className="summary-card team-filter" ref={ddRef} onClick={()=>setDdOpen(o=>!o)}>
+          <div className="summary-icon">🧑‍🤝‍🧑</div>
+          <div style={{flex:1}}><div className="summary-val" style={{color:"#4f46e5"}}>{allSel?team.length:`${sel.length}/${team.length}`}</div><div className="summary-lbl">Equipa</div></div>
+          <span className={`team-filter-chevron${ddOpen?' open':''}`}>▾</span>
+          {ddOpen && (
+            <div className="team-filter-panel" onClick={e=>e.stopPropagation()}>
+              <div className="people-dd-item" onClick={()=>selectAll(!allSel)}>
+                <input type="checkbox" checked={allSel} onChange={()=>selectAll(!allSel)} onClick={e=>e.stopPropagation()}/>
+                <span style={{fontWeight:700,color:'#0f172a'}}>All</span>
+              </div>
+              <div className="people-dd-sep"/>
+              {team.map(m=>(
+                <div key={m.id} className="people-dd-item">
+                  <input type="checkbox" checked={sel.includes(m.name)} onChange={()=>toggleMember(m.name)} onClick={e=>e.stopPropagation()}/>
+                  <span className="nav-dot" style={{background:m.color}}/>
+                  <span className="people-dd-item-name" onClick={e=>{ e.stopPropagation(); setSelectedMembers([m.name]); setDdOpen(false); }}>{m.name}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        <div className="summary-card summary-card-click" onClick={()=>onFilterView("pending-list")}><div className="summary-icon">⏳</div><div><div className="summary-val" style={{color:"#d97706"}}>{totPend}</div><div className="summary-lbl">Dias pendentes</div></div></div>
+        <div className="summary-card summary-card-click" onClick={()=>onFilterView("approved-list")}><div className="summary-icon">✅</div><div><div className="summary-val" style={{color:"#16a34a"}}>{totAppr}</div><div className="summary-lbl">Dias aprovados</div></div></div>
+        <div className="summary-card summary-card-click" onClick={()=>onFilterView("out-today")}><div className="summary-icon">👤</div><div><div className="summary-val" style={{color:offToday.length>0?"#dc2626":"#94a3b8"}}>{offToday.length}</div><div className="summary-lbl">Ausentes hoje</div></div></div>
       </div>
       <div className="page-header">
         <div><div className="page-title">Visão Geral da Equipa</div><div className="page-subtitle">{offToday.length>0?`Hoje ausente${offToday.length!==1?"s":""}: ${offToday.map(m=>m.name.split(" ")[0]).join(", ")}`:"Toda a equipa presente hoje"}</div></div>
         <div className="header-actions">
-          <div className="month-nav"><button className="month-nav-btn" onClick={onPrev}>◀</button><span className="month-label">{MONTHS_EN[month]} {year}</span><button className="month-nav-btn" onClick={onNext}>▶</button></div>
+          <button className="btn btn-ghost today-btn" onClick={onGoToday}>Today</button>
+          {!yearMode && <div className="month-nav"><button className="month-nav-btn" onClick={onPrev}>◀</button><span className="month-label">{MONTHS_EN[month]} {year}</span><button className="month-nav-btn" onClick={onNext}>▶</button></div>}
+          {yearMode && <div className="month-nav"><button className="month-nav-btn" onClick={onPrevYear}>◀</button><span className="month-label">{year}</span><button className="month-nav-btn" onClick={onNextYear}>▶</button></div>}
+          <div className="view-toggle">
+            <button className={`view-toggle-btn${!yearMode?" active":""}`} onClick={()=>setYearMode(false)}>📅 Month</button>
+            <button className={`view-toggle-btn${yearMode?" active":""}`} onClick={()=>setYearMode(true)}>🗓 Year</button>
+          </div>
           <button className="btn btn-primary" onClick={onAdd}>＋ Adicionar Férias</button>
         </div>
       </div>
-      <div className="gantt-wrap"><div className="gantt-scroll">
+      {yearMode && <YearView vacations={vacations} team={team} year={year} onMonthClick={goToMonth} onAddForDate={dateStr=>onAddWithDate(null,dateStr)}/>}
+      {!yearMode && <><div className="gantt-wrap"><div className="gantt-scroll">
         <table className="gantt-table">
           <thead><tr>
             <th className="gantt-name-th">Membro</th>
@@ -779,7 +1174,7 @@ function TeamView({ vacations, team, year, month, onPrev, onNext, onPersonClick,
             ))}
           </tr></thead>
           <tbody>
-            {team.map(member=>(
+            {visibleTeam.map(member=>(
               <tr key={member.id} className="gantt-row">
                 <td className="gantt-name-td" onClick={()=>onPersonClick(member.name)}>
                   <div className="gantt-member-inner"><div className="initials" style={{background:member.color}}>{member.initials}</div><span className="member-first">{member.name.split(" ")[0]}</span></div>
@@ -794,9 +1189,11 @@ function TeamView({ vacations, team, year, month, onPrev, onNext, onPersonClick,
                     pS={background:STATUS_COLORS[entry.status]||member.color,borderRadius:`${!hP?"5px":"0"} ${!hN?"5px":"0"} ${!hN?"5px":"0"} ${!hP?"5px":"0"}`,left:hP?"0":"2px",right:hN?"0":"2px"};
                     pC=entry.status==="pending"?"pending-pill":entry.status==="rejected"?"rejected-pill":"";
                   }
+                  const canAddHere = isAnyAdmin(userEmail) || (team.find(m=>m.email===userEmail)?.name === member.name);
                   return(
-                    <td key={d} className={`gantt-cell-td${isWeekend?" weekend":""}${isToday?" today-col":""}`}>
-                      {entry&&<div className="vac-pill" title={`${member.name}: ${fmt(entry.startDate,entry.endDate)} — ${entry.status}${entry.note?` · "${entry.note}"`:""}`}><div className={`vac-pill-inner${pC?" "+pC:""}`} style={pS}/></div>}
+                    <td key={d} className={`gantt-cell-td${isWeekend?" weekend":""}${isToday?" today-col":""}${!entry&&canAddHere&&!isWeekend?" gantt-add-cell":""}`}
+                      onClick={()=>{ if(!entry&&canAddHere&&!isWeekend) onAddWithDate(member.name,s); }}>
+                      {entry&&<div className="vac-pill" title={`${member.name}: ${fmt(entry.startDate,entry.endDate)} — ${entry.status}${entry.note?` · "${entry.note}"`:""}`} onClick={e=>{e.stopPropagation();onVacationClick(entry);}}><div className={`vac-pill-inner${pC?" "+pC:""}`} style={pS}/></div>}
                     </td>
                   );
                 })}
@@ -812,12 +1209,12 @@ function TeamView({ vacations, team, year, month, onPrev, onNext, onPersonClick,
           <div className="legend-item"><div className="legend-swatch" style={{background:"#ef4444",opacity:0.6}}/> Rejeitado</div>
           <div className="legend-item"><div className="legend-swatch" style={{background:"#f1f5f9",border:"1px dashed #cbd5e1"}}/> Fim de semana</div>
         </div>
-      </div>
+      </div></>}
     </div>
   );
 }
 /* ─── PERSON VIEW ─── */
-function PersonView({ member, vacations, onAdd, onEdit, onDelete, onCycleStatus, userEmail }) {
+function PersonView({ member, vacations, onAdd, onEdit, onDelete, onCycleStatus, userEmail, onVacationClick }) {
   const sorted=[...vacations].sort((a,b)=>a.startDate.localeCompare(b.startDate));
   const stats=useMemo(()=>{
     const tot=vacations.reduce((s,v)=>s+wdays(v.startDate,v.endDate),0);
@@ -835,7 +1232,7 @@ function PersonView({ member, vacations, onAdd, onEdit, onDelete, onCycleStatus,
           <div className="person-name">{member.name}</div>
           {member.email&&<div style={{fontSize:12,color:"#94a3b8",marginTop:3}}>✉️ {member.email}</div>}
           {member.name===TIAGO_NAME&&<div style={{fontSize:12,color:"#16a34a",fontWeight:600,marginTop:3}}>⭐ Super Admin — férias aprovadas automaticamente</div>}
-          {member.name===CATIA_NAME&&<div style={{fontSize:12,color:"#7c3aed",fontWeight:600,marginTop:3}}>🔑 Admin — aprova toda a equipa exceto Tiago</div>}
+          {member.name===CATIA_NAME&&<div style={{fontSize:12,color:"#7c3aed",fontWeight:600,marginTop:3}}>🔑 Admin — aprova toda a equipa e a si própria</div>}
           <div style={{display:"flex",gap:8,flexWrap:"wrap",marginTop:8}}>
             <span className="person-stat-pill stat-total">📅 {stats.tot} dia{stats.tot!==1?"s":""} total</span>
             {stats.appr>0&&<span className="person-stat-pill stat-approved">✅ {stats.appr} aprovado{stats.appr!==1?"s":""}</span>}
@@ -852,18 +1249,18 @@ function PersonView({ member, vacations, onAdd, onEdit, onDelete, onCycleStatus,
           {sorted.map(v=>{
             const wd=wdays(v.startDate,v.endDate),cd=expand(v.startDate,v.endDate).length;
             return (
-              <div key={v.id} className={`vac-card ${v.status}`}>
+              <div key={v.id} className={`vac-card ${v.status}`} onClick={() => onVacationClick(v)}>
                 <div className="vac-card-dates">
                   <div className="vac-date-range">{fmt(v.startDate,v.endDate)}</div>
                   <div className="vac-meta">{wd} dia{wd!==1?"s":""} útei{wd!==1?"s":"l"}{cd!==wd?` (${cd} dias corridos)`:""}</div>
                   {v.note&&<div className="vac-note">💬 {v.note}</div>}
                 </div>
                 <div className="vac-card-actions">
-                  <span className={`status-badge ${v.status}${userCanApprove?" clickable":""}`} onClick={userCanApprove?()=>onCycleStatus(v.id):undefined} title={userCanApprove?"Clica para alterar: Pendente → Aprovado → Rejeitado":v.status==="approved"?"Aprovado":v.status==="pending"?"Pendente":"Rejeitado"}>
+                  <span className={`status-badge ${v.status}${userCanApprove?" clickable":""}`} onClick={(e)=>{e.stopPropagation();if(userCanApprove)onCycleStatus(v.id);}} title={userCanApprove?"Clica para alterar: Pendente → Aprovado → Rejeitado":v.status==="approved"?"Aprovado":v.status==="pending"?"Pendente":"Rejeitado"}>
                     {v.status==="approved"?"✅ Aprovado":v.status==="pending"?"⏳ Pendente":"❌ Rejeitado"}
                   </span>
-                  <button className="btn-edit-ghost" onClick={()=>onEdit(v)}>✏️ Editar</button>
-                  <button className="btn-danger-ghost" onClick={()=>onDelete(v.id)}>🗑️</button>
+                  <button className="btn-edit-ghost" onClick={(e)=>{e.stopPropagation();onEdit(v);}}>✏️ Editar</button>
+                  <button className="btn-danger-ghost" onClick={(e)=>{e.stopPropagation();onDelete(v.id);}}>🗑️</button>
                 </div>
               </div>
             );
@@ -873,21 +1270,149 @@ function PersonView({ member, vacations, onAdd, onEdit, onDelete, onCycleStatus,
     </div>
   );
 }
+/* ─── FILTERED VACATIONS VIEW ─── */
+function FilteredVacationsView({ title, icon, vacations, team, onDelete, onCycleStatus, onVacationClick, userEmail, onBack }) {
+  const sorted = [...vacations].sort((a, b) => a.startDate.localeCompare(b.startDate));
+  return (
+    <div>
+      <div className="person-header">
+        <button className="btn btn-ghost" onClick={onBack} style={{marginRight:12,flexShrink:0}}>← Voltar</button>
+        <div className="summary-icon" style={{fontSize:28}}>{icon}</div>
+        <div style={{flex:1}}>
+          <div className="person-name">{title}</div>
+          <div style={{color:'#64748b',fontSize:13,marginTop:2}}>{vacations.length} registo{vacations.length!==1?'s':''}</div>
+        </div>
+      </div>
+      {sorted.length === 0 ? (
+        <div className="empty"><div className="empty-icon">{icon}</div><div className="empty-title">Nenhum registo encontrado</div></div>
+      ) : (
+        <div className="vac-list">
+          {sorted.map(v => {
+            const member = team.find(m => m.name === v.member);
+            const wd = wdays(v.startDate, v.endDate);
+            const cd = expand(v.startDate, v.endDate).length;
+            const userCanApprove = canApprove(userEmail, v.member);
+            return (
+              <div key={v.id} className={`vac-card ${v.status}`} onClick={() => onVacationClick(v)}>
+                <div className="vac-card-dates">
+                  <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:4}}>
+                    <span style={{background:member?.color||'#94a3b8',width:10,height:10,borderRadius:'50%',display:'inline-block',flexShrink:0}}/>
+                    <span style={{fontWeight:700,color:'#0f172a',fontSize:14}}>{v.member}</span>
+                  </div>
+                  <div className="vac-date-range">{fmt(v.startDate, v.endDate)}</div>
+                  <div className="vac-meta">{wd} dia{wd!==1?"s":""} útei{wd!==1?"s":"l"}{cd!==wd?` (${cd} dias corridos)`:""}</div>
+                  {v.note && <div className="vac-note">💬 {v.note}</div>}
+                </div>
+                <div className="vac-card-actions">
+                  <span className={`status-badge ${v.status}${userCanApprove?" clickable":""}`}
+                    onClick={e=>{e.stopPropagation();if(userCanApprove)onCycleStatus(v.id);}}
+                    title={userCanApprove?"Clica para alterar: Pendente → Aprovado → Rejeitado":""}>
+                    {v.status==="approved"?"✅ Aprovado":v.status==="pending"?"⏳ Pendente":"❌ Rejeitado"}
+                  </span>
+                  <button className="btn-danger-ghost" onClick={e=>{e.stopPropagation();onDelete(v.id);}}>🗑️</button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+/* ─── CALENDAR POPUP ─── */
+const MONTHS_PT = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const DOWS_PT   = ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
+function CalendarPopup({ year, month, selected, paired, onSelect, onPrev, onNext }) {
+  const tod = today();
+  const firstDow = (new Date(year, month, 1).getDay() + 6) % 7;
+  const days = dim(year, month);
+  const lo = [selected, paired].filter(Boolean).sort()[0];
+  const hi = [selected, paired].filter(Boolean).sort()[1];
+  const cells = [];
+  for (let i = 0; i < firstDow; i++) cells.push(<div key={`e${i}`}/>);
+  for (let d = 1; d <= days; d++) {
+    const iso = ds(year, month, d);
+    const dow = (new Date(year, month, d).getDay() + 6) % 7;
+    const isWe = dow >= 5;
+    cells.push(
+      <div key={d}
+        className={['cal-day', isWe?'cal-we':'', iso===selected?'cal-sel':'', iso===paired?'cal-paired':'', (!isWe&&lo&&hi&&iso>lo&&iso<hi)?'cal-in-range':'', iso===tod?'cal-today':''].join(' ').trim()}
+        onClick={() => { if (!isWe) onSelect(iso); }}>
+        {d}
+      </div>
+    );
+  }
+  return (
+    <div className="cal-popup">
+      <div className="cal-header">
+        <button className="cal-nav-btn" onClick={onPrev}>◀</button>
+        <span className="cal-header-label">{MONTHS_PT[month]} {year}</span>
+        <button className="cal-nav-btn" onClick={onNext}>▶</button>
+      </div>
+      <div className="cal-grid">
+        {DOWS_PT.map(d => <div key={d} className="cal-dow">{d}</div>)}
+        {cells}
+      </div>
+    </div>
+  );
+}
+/* ─── DATE INPUT ─── */
+function DateInput({ label, value, otherValue, onPick, autoOpen }) {
+  const isoToVM = iso => {
+    if (iso) { const p = iso.split('-').map(Number); return { year: p[0], month: p[1]-1 }; }
+    const n = new Date(); return { year: n.getFullYear(), month: n.getMonth() };
+  };
+  const [open, setOpen]   = useState(false);
+  const [vm, setVm]       = useState(() => isoToVM(value || otherValue));
+  const wrapRef           = useRef(null);
+  const didAutoOpen       = useRef(false);
+  useEffect(() => {
+    if (autoOpen && !didAutoOpen.current) { didAutoOpen.current = true; setOpen(true); }
+  }, [autoOpen]);
+  useEffect(() => { if (value) setVm(isoToVM(value)); }, [value]);
+  useEffect(() => {
+    if (!open) return;
+    const h = e => { if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', h);
+    return () => document.removeEventListener('mousedown', h);
+  }, [open]);
+  const nav = dir => setVm(v => { const d = new Date(v.year, v.month + dir, 1); return { year: d.getFullYear(), month: d.getMonth() }; });
+  const display = value ? value.split('-').reverse().join('/') : null;
+  return (
+    <div className="date-input-wrap" ref={wrapRef}>
+      <div className={['date-display', open?'dp-open':'', value?'dp-filled':''].join(' ').trim()} onClick={() => setOpen(o => !o)}>
+        {display || <span className="date-placeholder">DD/MM/AAAA</span>}
+      </div>
+      {open && <CalendarPopup year={vm.year} month={vm.month} selected={value} paired={otherValue}
+        onSelect={iso => { onPick(iso); setOpen(false); }}
+        onPrev={() => nav(-1)} onNext={() => nav(+1)}/>}
+    </div>
+  );
+}
 /* ─── VACATION MODAL ─── */
 function VacationModal({ mode, defaultMember, entry, team, onSave, onClose, userEmail }) {
-  const [member,    setMember]    = useState(entry?.member    || defaultMember || (team[0]?.name||""));
+  const adminUser  = isAnyAdmin(userEmail);
+  const myName     = team.find(m => m.email === userEmail)?.name || defaultMember || (team[0]?.name||"");
+  const initMember = mode==='add' && !adminUser ? myName : (entry?.member || defaultMember || myName);
+  const [member,    setMember]    = useState(initMember);
   const [startDate, setStartDate] = useState(entry?.startDate || "");
   const [endDate,   setEndDate]   = useState(entry?.endDate   || "");
   const [status,    setStatus]    = useState(entry?.status    || "pending");
   const [note,      setNote]      = useState(entry?.note      || "");
-  const wd=startDate&&endDate&&endDate>=startDate?wdays(startDate,endDate):null;
-  const adminUser  = isAnyAdmin(userEmail);
-  const isTiagoNew = member===TIAGO_NAME && mode==='add';
-  const showSel    = !isTiagoNew && (adminUser || mode==='edit');
+  const handlePick = (slot, iso) => {
+    const a = slot === 'start' ? iso : startDate;
+    const b = slot === 'end'   ? iso : endDate;
+    if (a && b) { setStartDate(a <= b ? a : b); setEndDate(a <= b ? b : a); }
+    else { if (slot === 'start') setStartDate(iso); else setEndDate(iso); }
+  };
+  const wd = startDate && endDate && endDate >= startDate ? wdays(startDate, endDate) : null;
+  const maxDate = (() => { const d = new Date(); d.setDate(d.getDate() + 365); return d.toISOString().split('T')[0]; })();
+  const isAdding   = mode === 'add';
+  const isTiagoNew = member === TIAGO_NAME && isAdding;
   const handleSave = () => {
     if(!member||!startDate||!endDate) return alert("Preenche todos os campos obrigatórios.");
-    if(endDate<startDate) return alert("A data de fim deve ser igual ou posterior à data de início.");
-    const finalStatus = isTiagoNew ? 'approved' : (!adminUser&&mode==='add') ? 'pending' : status;
+    if(startDate>maxDate) return alert("Não podes marcar férias com mais de 365 dias de antecedência.");
+    const finalStatus = isAdding ? (isTiagoNew ? 'approved' : 'pending') : status;
     onSave({id:entry?.id,member,startDate,endDate,status:finalStatus,note:note.trim()});
   };
   return (
@@ -895,20 +1420,29 @@ function VacationModal({ mode, defaultMember, entry, team, onSave, onClose, user
       <div className="modal">
         <div className="modal-title">{mode==="edit"?"✏️ Editar Férias":"＋ Adicionar Férias"}<button className="modal-close" onClick={onClose}>×</button></div>
         <div className="form-group"><label className="form-label">Membro *</label>
-          <select className="form-input" value={member} onChange={e=>setMember(e.target.value)}>
-            {team.map(m=><option key={m.id} value={m.name}>{m.name}</option>)}
-          </select>
+          {isAdding && !adminUser
+            ? <div className="form-input" style={{background:'#f8fafc',color:'#0f172a',display:'flex',alignItems:'center',gap:8,cursor:'default'}}>
+                <span className="nav-dot" style={{background: team.find(m=>m.name===member)?.color||'#94a3b8', width:10, height:10}}/>
+                {member}
+              </div>
+            : <select className="form-input" value={member} onChange={e=>setMember(e.target.value)}>
+                {team.map(m=><option key={m.id} value={m.name}>{m.name}</option>)}
+              </select>
+          }
         </div>
         <div className="form-row">
-          <div className="form-group"><label className="form-label">Data início *</label><input type="date" className="form-input" value={startDate} onChange={e=>{setStartDate(e.target.value);if(!endDate||e.target.value>endDate)setEndDate(e.target.value);}}/></div>
-          <div className="form-group"><label className="form-label">Data fim *</label><input type="date" className="form-input" value={endDate} min={startDate} onChange={e=>setEndDate(e.target.value)}/></div>
+          <div className="form-group"><DateInput label="Data início *" value={startDate} otherValue={endDate} onPick={iso=>handlePick('start',iso)}/></div>
+          <div className="form-group"><DateInput label="Data fim *" value={endDate} otherValue={startDate} onPick={iso=>handlePick('end',iso)} autoOpen={!!(entry?.startDate && !entry?.endDate)}/></div>
         </div>
         {wd!==null&&<div style={{fontSize:12,color:"#64748b",marginTop:-10,marginBottom:14,paddingLeft:2}}>📅 {wd} dia{wd!==1?"s":""} útei{wd!==1?"s":"l"}</div>}
-        <div className="form-group"><label className="form-label">Estado</label>
-          {isTiagoNew ? <div className="status-locked approved">✅ Aprovado automaticamente — férias do Tiago são sempre verdes</div>
-           : showSel ? <div className="status-selector">{["pending","approved","rejected"].map(s=><div key={s} className={`status-option${status===s?" sel-"+s:""}`} onClick={()=>setStatus(s)}>{s==="pending"?"⏳ Pendente":s==="approved"?"✅ Aprovado":"❌ Rejeitado"}</div>)}</div>
-           : <div className="status-locked pending">⏳ Pendente — aguarda aprovação</div>}
-        </div>
+        {isAdding
+          ? <div className="form-group"><div className="status-locked" style={{background: isTiagoNew?'#f0fdf4':'#fefce8', color: isTiagoNew?'#15803d':'#a16207', border:`1px solid ${isTiagoNew?'#bbf7d0':'#fde68a'}`, borderRadius:8, padding:'10px 14px', fontSize:13}}>
+              {isTiagoNew ? '✅ Aprovado automaticamente — férias do Tiago são sempre verdes' : '⏳ Ficará pendente até aprovação'}
+            </div></div>
+          : <div className="form-group"><label className="form-label">Estado</label>
+              <div className="status-selector">{["pending","approved","rejected"].map(s=><div key={s} className={`status-option${status===s?" sel-"+s:""}`} onClick={()=>setStatus(s)}>{s==="pending"?"⏳ Pendente":s==="approved"?"✅ Aprovado":"❌ Rejeitado"}</div>)}</div>
+            </div>
+        }
         <div className="form-group"><label className="form-label">Nota <span style={{fontWeight:400,color:"#94a3b8"}}>(opcional)</span></label><input type="text" className="form-input" placeholder="ex. Férias de verão, Baixa médica…" value={note} onChange={e=>setNote(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")handleSave();}}/></div>
         <div className="modal-actions"><button className="btn-cancel" onClick={onClose}>Cancelar</button><button className="btn btn-primary" onClick={handleSave}>{mode==="edit"?"Guardar":"Adicionar"}</button></div>
       </div>
